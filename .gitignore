@@ -1,4 +1,6 @@
 .DS_Store
 FSRS.xcodeproj/project.xcworkspace/xcuserdata/
 FSRS.xcodeproj/xcuserdata/
+.swiftpm
+.build
 
