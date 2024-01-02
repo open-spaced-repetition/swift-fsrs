@@ -82,7 +82,9 @@
 				312BBBF02A86146800289576 /* FSRSUITests */,
 				312BBBD32A86146700289576 /* Products */,
 			);
+			indentWidth = 4;
 			sourceTree = "<group>";
+			tabWidth = 4;
 		};
 		312BBBD32A86146700289576 /* Products */ = {
 			isa = PBXGroup;

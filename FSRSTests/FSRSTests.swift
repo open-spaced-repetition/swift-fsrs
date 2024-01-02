@@ -10,21 +10,12 @@ import XCTest
 @testable import FSRS
 
 final class FSRSTests: XCTestCase {
-
-    override func setUpWithError() throws {
-        // Put setup code here. This method is called before the invocation of each test method in the class.
-    }
-
-    override func tearDownWithError() throws {
-        // Put teardown code here. This method is called after the invocation of each test method in the class.
-    }
-
     func testExample() throws {
-        let f = FSRS()
+        var f = FSRS()
         let card = Card()
 
-        XCTAssertEqual(card.status, .New)
-        
+        XCTAssertEqual(card.status, .new)
+
         f.p.w = [
             1.14, 1.01, 5.44, 14.67, 5.3024, 1.5662, 1.2503, 0.0028,
             1.5489, 0.1763, 0.9953, 2.7473, 0.0179, 0.3105, 0.3976, 0.0, 2.0902
@@ -36,7 +27,7 @@ final class FSRSTests: XCTestCase {
         
         print(schedulingCards)
         
-        let ratings: [Rating] = [.Good, .Good, .Good, .Good, .Good, .Good, .Again, .Again, .Good, .Good, .Good, .Good, .Good, .Hard, .Easy, .Good]
+        let ratings: [Rating] = [.good, .good, .good, .good, .good, .good, .again, .again, .good, .good, .good, .good, .good, .hard, .easy, .good]
         var ivlHistory: [Double] = []
         var statusHistory: [Status] = []
         
@@ -58,25 +49,17 @@ final class FSRSTests: XCTestCase {
         print(statusHistory)
         
         XCTAssertEqual(ivlHistory, [0, 5, 16, 43, 106, 236, 0, 0, 12, 25, 47, 85, 147, 147, 351, 551])
-        XCTAssertEqual(statusHistory, [.New, .Learning, .Review, .Review, .Review, .Review, .Review, .Relearning, .Relearning, .Review, .Review, .Review, .Review, .Review, .Review, .Review])
-    
+        XCTAssertEqual(statusHistory, [.new, .learning, .review, .review, .review, .review, .review, .relearning, .relearning, .review, .review, .review, .review, .review, .review, .review])
+
     }
 
     func log(schedulingInfo: [Rating: SchedulingInfo]) {
-        
-        var data = [String: [String: [String: Encodable]]]()
+        var data = [String: String]()
         for key in schedulingInfo.keys {
             if let info = schedulingInfo[key] {
-                data[key.description] = info.data()
+                data[String(describing: key)] = String(describing: info)
             }
         }
         print("\(data)")
     }
-    func testPerformanceExample() throws {
-        // This is an example of a performance test case.
-        measure {
-            // Put the code you want to measure the time of here.
-        }
-    }
-
 }
