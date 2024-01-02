@@ -6,195 +6,160 @@
 
 import Foundation
 
-public class Const {
-    public static let secondsInMinute = 60.0
-    public static let secondsInHour = 3600.0
-    public static let secondsInDay = 86400.0
+enum Constants {
+    static let secondsInMinute = 60.0
+    static let secondsInHour = Self.secondsInMinute * 60
+    static let secondsInDay = Self.secondsInHour * 24
 }
 
-enum Status: Int {
-    case New = 0, Learning, Review, Relearning
-    
-    var description : String {
-      switch self {
-      case .New: return "New"
-      case .Learning: return "Learning"
-      case .Review: return "Review"
-      case .Relearning: return "Relearning"
-      }
-    }
+public enum Status: Codable, Equatable {
+    case new, learning, review, relearning
 }
 
-enum Rating: Int, Encodable {
-    case Again = 1, Hard, Good, Easy
-    
-    var description : String {
-      switch self {
-      case .Again: return "Again"
-      case .Hard: return "Hard"
-      case .Good: return "Good"
-      case .Easy: return "Easy"
-      }
-    }
+public enum Rating: Int, Codable, Equatable  {
+    case again = 1, hard, good, easy
 }
 
-class ReviewLog {
-    var rating: Rating
-    var elapsedDays: Double
-    var scheduledDays: Double
-    var review: Date
-    var status: Status
+public struct ReviewLog: Equatable, Codable {
+    public var rating: Rating
+    public var elapsedDays: Double
+    public var scheduledDays: Double
+    public var review: Date
+    public var status: Status
 
-    init(rating: Rating, elapsedDays: Double, scheduledDays: Double, review: Date, status: Status) {
+    public init(
+        rating: Rating,
+        elapsedDays: Double,
+        scheduledDays: Double,
+        review: Date,
+        status: Status
+    ) {
         self.rating = rating
         self.elapsedDays = elapsedDays
         self.scheduledDays = scheduledDays
         self.review = review
         self.status = status
     }
-    
-    func data() -> [String: Encodable] {
-        return [
-            "rating": rating,
-            "elapsedDays": elapsedDays,
-            "scheduledDays": scheduledDays,
-            "review": review,
-            "state": status.description,
-        ]
-    }
-    
 }
 
-class Card: NSCopying {
-    
-    var due: Date
-    var stability: Double
-    var difficulty: Double
-    var elapsedDays: Double
-    var scheduledDays: Double
-    var reps: Int
-    var lapses: Int
-    var status: Status
-    var lastReview: Date
+public struct Card: Equatable, Codable {
+    public var due: Date
+    public var stability: Double
+    public var difficulty: Double
+    public var elapsedDays: Double
+    public var scheduledDays: Double
+    public var reps: Int
+    public var lapses: Int
+    public var status: Status
+    public var lastReview: Date
 
-    init() {
-        self.due = Date()
-        self.stability = 0
-        self.difficulty = 0
-        self.elapsedDays = 0
-        self.scheduledDays = 0
-        self.reps = 0
-        self.lapses = 0
-        self.status = .New
-        self.lastReview = Date()
+    public init(
+        due: Date = Date(),
+        stability: Double = 0,
+        difficulty: Double = 0,
+        elapsedDays: Double = 0,
+        scheduledDays: Double = 0,
+        reps: Int = 0,
+        lapses: Int = 0,
+        status: Status = .new,
+        lastReview: Date = Date()
+    ) {
+        self.due = due
+        self.stability = stability
+        self.difficulty = difficulty
+        self.elapsedDays = elapsedDays
+        self.scheduledDays = scheduledDays
+        self.reps = reps
+        self.lapses = lapses
+        self.status = status
+        self.lastReview = lastReview
     }
 
     func retrievability(for now: Date) -> Double? {
-        var retrievability: Double?
-        if status == .Review {
-            let elapsedDays = max(0, (now.timeIntervalSince(lastReview) / Const.secondsInDay))
-            retrievability = exp(log(0.9) * Double(elapsedDays) / stability)
-        }
-        return retrievability
+        guard status == .review else { return nil }
+        let elapsedDays = max(0, (now.timeIntervalSince(lastReview) / Constants.secondsInDay))
+        return exp(log(0.9) * Double(elapsedDays) / stability)
     }
-    
-    func copy(with zone: NSZone? = nil) -> Any {
-        let card = Card()
-        card.due = due
-        card.stability = stability
-        card.difficulty = difficulty
-        card.elapsedDays = elapsedDays
-        card.scheduledDays = scheduledDays
-        card.reps = reps
-        card.lapses = lapses
-        card.status = status
-        card.lastReview = lastReview
-        return card
-    }
-    
-    func data() -> [String: Encodable] {
-        return [
-            "due": due,
-            "stability": stability,
-            "difficulty": difficulty,
-            "elapsed_days": elapsedDays,
-            "scheduled_days": scheduledDays,
-            "reps": reps,
-            "lapses": lapses,
-            "state": status.description,
-            "last_review": lastReview,
-        ]
-    }
-    
+
     func printLog() {
         do {
-            let data = try JSONSerialization.data(withJSONObject: data(), options: .prettyPrinted)
+            var encoder = JSONEncoder()
+            encoder.outputFormatting = .prettyPrinted
+            let data = try encoder.encode(self)
             print(data)
         } catch {
             print("Error serializing JSON: \(error)")
         }
     }
-    
 }
 
-class SchedulingInfo {
-    var card: Card
-    var reviewLog: ReviewLog
-    
-    init(card: Card, reviewLog: ReviewLog) {
+public struct SchedulingInfo {
+    public var card: Card
+    public var reviewLog: ReviewLog
+
+    public init(card: Card, reviewLog: ReviewLog) {
         self.card = card
         self.reviewLog = reviewLog
     }
-    
-    init(rating: Rating, reference: Card, current: Card, review: Date) {
-        self.card = reference
-        self.reviewLog = ReviewLog(rating: rating, elapsedDays: reference.scheduledDays, scheduledDays: current.elapsedDays, review: review, status: current.status)
-    }
-    
-    func data() -> [String: [String: Encodable]] {
-        return [
-            "log": reviewLog.data(),
-            "card": card.data()
-        ]
-    }
 
+    public init(rating: Rating, reference: Card, current: Card, review: Date) {
+        self.card = reference
+        self.reviewLog = ReviewLog(
+            rating: rating,
+            elapsedDays: reference.scheduledDays,
+            scheduledDays: current.elapsedDays,
+            review: review,
+            status: current.status
+        )
+    }
 }
 
-class SchedulingCards {
-    var again: Card
-    var hard: Card
-    var good: Card
-    var easy: Card
+public struct SchedulingCards: Equatable, Codable {
+    public var again: Card
+    public var hard: Card
+    public var good: Card
+    public var easy: Card
 
-    init(card: Card) {
-        self.again = card.copy() as! Card
-        self.hard = card.copy() as! Card
-        self.good = card.copy() as! Card
-        self.easy = card.copy() as! Card
+    public init(card: Card) {
+        self.again = card
+        self.hard = card
+        self.good = card
+        self.easy = card
     }
 
-    func updateStatus(to status: Status) {
-        if status == .New {
-            [again, hard, good].forEach { $0.status = .Learning }
-            easy.status = .Review
+    public mutating func updateStatus(to status: Status) {
+        switch status {
+        case .new:
+            again.status = .learning
+            hard.status = .learning
+            good.status = .learning
+            easy.status = .review
             again.lapses += 1
-        } else if status == .Learning || status == .Relearning {
-            [again, hard].forEach { $0.status = status }
-            [good, easy].forEach { $0.status = .Review }
-        } else if status == .Review {
-            again.status = .Relearning
-            [hard, good, easy].forEach { $0.status = .Review }
+        case .learning, .relearning:
+            again.status = status
+            hard.status = status
+            good.status = .review
+            easy.status = .review
+        case .review:
+            again.status = .relearning
+            hard.status = .review
+            good.status = .review
+            easy.status = .review
             again.lapses += 1
         }
     }
 
-    func schedule(now: Date, hardInterval: Double, goodInterval: Double, easyInterval: Double) {
-
+    public mutating func schedule(
+        now: Date,
+        hardInterval: Double,
+        goodInterval: Double,
+        easyInterval: Double
+    ) {
         again.scheduledDays = 0
         hard.scheduledDays = hardInterval
         good.scheduledDays = goodInterval
         easy.scheduledDays = easyInterval
-        
+
         again.due = addTime(now, value: 5, unit: .minute)
         if hardInterval > 0 {
             hard.due = addTime(now, value: hardInterval, unit: .day)
@@ -204,52 +169,41 @@ class SchedulingCards {
         good.due = addTime(now, value: goodInterval, unit: .day)
         easy.due = addTime(now, value: easyInterval, unit: .day)
     }
-    
-    public func addTime(_ now: Date, value: Double, unit: Calendar.Component) -> Date {
+
+    public mutating func addTime(_ now: Date, value: Double, unit: Calendar.Component) -> Date {
         var seconds = 1.0
         switch unit {
-            case .second:
-                seconds = 1.0
-            case .minute:
-                seconds = Const.secondsInMinute
-            case .hour:
-                seconds = Const.secondsInMinute
-            case .day:
-                seconds = Const.secondsInDay
-            default:
-                assert(false)
-            }
-        
+        case .second:
+            seconds = 1.0
+        case .minute:
+            seconds = Constants.secondsInMinute
+        case .hour:
+            seconds = Constants.secondsInMinute
+        case .day:
+            seconds = Constants.secondsInDay
+        default:
+            assert(false)
+        }
+
         return Date(timeIntervalSinceReferenceDate: now.timeIntervalSinceReferenceDate + seconds * value)
-//        return Calendar.current.date(byAdding: unit, value: value, to: now)!
     }
 
     func recordLog(for card: Card, now: Date) -> [Rating: SchedulingInfo] {
-        return [
-            .Again: SchedulingInfo(rating: .Again, reference: again, current: card, review: now),
-            .Hard: SchedulingInfo(rating: .Hard, reference: hard, current: card, review: now),
-            .Good: SchedulingInfo(rating: .Good, reference: good, current: card, review: now),
-            .Easy: SchedulingInfo(rating: .Easy, reference: easy, current: card, review: now),
+        [
+            .again: SchedulingInfo(rating: .again, reference: again, current: card, review: now),
+            .hard: SchedulingInfo(rating: .hard, reference: hard, current: card, review: now),
+            .good: SchedulingInfo(rating: .good, reference: good, current: card, review: now),
+            .easy: SchedulingInfo(rating: .easy, reference: easy, current: card, review: now),
         ]
     }
-    
-    func data() -> [String: [String: Encodable]] {
-        return [
-            "again": again.data(),
-            "hard": hard.data(),
-            "good": good.data(),
-            "easy": easy.data(),
-        ]
-    }
-    
 }
 
-class Params {
+public struct Params {
     var requestRetention: Double
     var maximumInterval: Double
     var w: [Double]
 
-    init() {
+    public init() {
         self.requestRetention = 0.9
         self.maximumInterval = 36500
         self.w = [
@@ -274,93 +228,101 @@ class Params {
     }
 }
 
+public struct FSRS {
+    public var p: Params
 
-class FSRS {
-    var p: Params
-    
-
-    init() {
-        self.p = Params()
+    public init(p: Params = Params()) {
+        self.p = p
     }
 
     // Was repeat
     func `repeat`(card: Card, now: Date) -> [Rating: SchedulingInfo] {
-        let card = card.copy() as! Card
-
-        if card.status == .New {
+        var card = card
+        if card.status == .new {
             card.elapsedDays = 0
         } else {
             // Check this is positive...
-            card.elapsedDays = (now.timeIntervalSince(card.lastReview)) / Const.secondsInDay
+            card.elapsedDays = (now.timeIntervalSince(card.lastReview)) / Constants.secondsInDay
         }
-        
+
         print("Elapsed \(card.elapsedDays)")
         card.lastReview = now
         card.reps += 1
-        
-        let s = SchedulingCards(card: card)
+
+        var s = SchedulingCards(card: card)
         s.updateStatus(to: card.status)
-        
-        if card.status == .New {
-            initDS(s: s)
-            
+
+        if card.status == .new {
+            initDS(s: &s)
+
             s.again.due = s.addTime(now, value: 1, unit: .minute)
             s.hard.due = s.addTime(now, value: 5, unit: .minute)
             s.good.due = s.addTime(now, value: 10, unit: .minute)
 
             let easyInterval = nextInterval(s: s.easy.stability)
-            
+
             s.easy.scheduledDays = easyInterval
             s.easy.due = s.addTime(now, value: easyInterval, unit: .day)
 
-        } else if card.status == .Learning || card.status == .Relearning {
+        } else if card.status == .learning || card.status == .relearning {
             let hardInterval = 0.0
             let goodInterval = nextInterval(s: s.good.stability)
             let easyInterval = max(nextInterval(s: s.easy.stability), goodInterval + 1)
             s.schedule(now: now, hardInterval: hardInterval, goodInterval: goodInterval, easyInterval: easyInterval)
-        } else if card.status == .Review {
-            
+        } else if card.status == .review {
+
             let interval = card.elapsedDays
             let lastDifficulty = card.difficulty
             let lastStability = card.stability
-            
+
             let retrievability = pow(1 + Double(interval) / (9 * lastStability), -1)
 
-            nextDS(s, lastDifficulty: lastDifficulty, lastStability: lastStability, retrievability: retrievability)
+            nextDS(&s, lastDifficulty: lastDifficulty, lastStability: lastStability, retrievability: retrievability)
 
             var hardInterval = nextInterval(s: s.hard.stability)
             var goodInterval = nextInterval(s: s.good.stability)
-            
+
             hardInterval = min(hardInterval, goodInterval)
             goodInterval = max(goodInterval, hardInterval + 1)
-            
+
             let easyInterval = max(nextInterval(s: s.easy.stability), goodInterval + 1)
             s.schedule(now: now, hardInterval: hardInterval, goodInterval: goodInterval, easyInterval: easyInterval)
         }
-        
+
         return s.recordLog(for: card, now: now)
     }
 
-    func initDS(s: SchedulingCards) {
-        s.again.difficulty = initDifficulty(.Again)
-        s.again.stability = initStability(.Again)
-        s.hard.difficulty = initDifficulty(.Hard)
-        s.hard.stability = initStability(.Hard)
-        s.good.difficulty = initDifficulty(.Good)
-        s.good.stability = initStability(.Good)
-        s.easy.difficulty = initDifficulty(.Easy)
-        s.easy.stability = initStability(.Easy)
+    func initDS(s: inout SchedulingCards) {
+        s.again.difficulty = initDifficulty(.again)
+        s.again.stability = initStability(.again)
+        s.hard.difficulty = initDifficulty(.hard)
+        s.hard.stability = initStability(.hard)
+        s.good.difficulty = initDifficulty(.good)
+        s.good.stability = initStability(.good)
+        s.easy.difficulty = initDifficulty(.easy)
+        s.easy.stability = initStability(.easy)
     }
 
-    func nextDS(_ scheduling: SchedulingCards, lastDifficulty d: Double, lastStability s: Double, retrievability: Double) {
-        scheduling.again.difficulty = nextDifficulty(d: d, rating: .Again)
+    func nextDS(
+        _ scheduling: inout SchedulingCards,
+        lastDifficulty d: Double,
+        lastStability s: Double,
+        retrievability: Double
+    ) {
+        scheduling.again.difficulty = nextDifficulty(d: d, rating: .again)
         scheduling.again.stability = nextForgetStability(d: scheduling.again.difficulty, s: s, r: retrievability)
-        scheduling.hard.difficulty = nextDifficulty(d: d, rating: .Hard)
-        scheduling.hard.stability = nextRecallStability(d: scheduling.hard.difficulty, s: s, r: retrievability, rating: .Hard)
-        scheduling.good.difficulty = nextDifficulty(d: d, rating: .Good)
-        scheduling.good.stability = nextRecallStability(d: scheduling.good.difficulty, s: s, r: retrievability, rating: .Good)
-        scheduling.easy.difficulty = nextDifficulty(d: d, rating: .Easy)
-        scheduling.easy.stability = nextRecallStability(d: scheduling.easy.difficulty, s: s, r: retrievability, rating: .Easy)
+        scheduling.hard.difficulty = nextDifficulty(d: d, rating: .hard)
+        scheduling.hard.stability = nextRecallStability(
+            d: scheduling.hard.difficulty, s: s, r: retrievability, rating: .hard
+        )
+        scheduling.good.difficulty = nextDifficulty(d: d, rating: .good)
+        scheduling.good.stability = nextRecallStability(
+            d: scheduling.good.difficulty, s: s, r: retrievability, rating: .good
+        )
+        scheduling.easy.difficulty = nextDifficulty(d: d, rating: .easy)
+        scheduling.easy.stability = nextRecallStability(
+            d: scheduling.easy.difficulty, s: s, r: retrievability, rating: .easy
+        )
     }
 
     func initStability(_ rating: Rating) -> Double {
@@ -395,8 +357,8 @@ class FSRS {
     }
 
     func nextRecallStability(d: Double, s: Double, r: Double, rating: Rating) -> Double {
-        let hardPenalty = (rating == .Hard) ? p.w[15] : 1
-        let easyBonus = (rating == .Easy) ? p.w[16] : 1
+        let hardPenalty = (rating == .hard) ? p.w[15] : 1
+        let easyBonus = (rating == .easy) ? p.w[16] : 1
         return s * (1 + exp(p.w[8]) * (11 - d) * pow(s, -p.w[9]) * (exp((1 - r) * p.w[10]) - 1) * hardPenalty * easyBonus)
     }
 
@@ -404,4 +366,3 @@ class FSRS {
         return p.w[11] * pow(d, -p.w[12]) * (pow(s + 1.0, p.w[13]) - 1) * exp((1 - r) * p.w[14])
     }
 }
-
