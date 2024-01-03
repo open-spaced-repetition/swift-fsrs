@@ -83,7 +83,7 @@ public struct Card: Equatable, Codable {
 
     func printLog() {
         do {
-            var encoder = JSONEncoder()
+            let encoder = JSONEncoder()
             encoder.outputFormatting = .prettyPrinted
             let data = try encoder.encode(self)
             print(data)
@@ -199,9 +199,9 @@ public struct SchedulingCards: Equatable, Codable {
 }
 
 public struct Params {
-    var requestRetention: Double
-    var maximumInterval: Double
-    var w: [Double]
+    public var requestRetention: Double
+    public var maximumInterval: Double
+    public var w: [Double]
 
     public init() {
         self.requestRetention = 0.9
@@ -236,7 +236,7 @@ public struct FSRS {
     }
 
     // Was repeat
-    func `repeat`(card: Card, now: Date) -> [Rating: SchedulingInfo] {
+    public func `repeat`(card: Card, now: Date) -> [Rating: SchedulingInfo] {
         var card = card
         if card.status == .new {
             card.elapsedDays = 0
@@ -252,7 +252,8 @@ public struct FSRS {
         var s = SchedulingCards(card: card)
         s.updateStatus(to: card.status)
 
-        if card.status == .new {
+        switch card.status {
+        case .new:
             initDS(s: &s)
 
             s.again.due = s.addTime(now, value: 1, unit: .minute)
@@ -264,13 +265,13 @@ public struct FSRS {
             s.easy.scheduledDays = easyInterval
             s.easy.due = s.addTime(now, value: easyInterval, unit: .day)
 
-        } else if card.status == .learning || card.status == .relearning {
+        case .learning, .relearning:
             let hardInterval = 0.0
             let goodInterval = nextInterval(s: s.good.stability)
             let easyInterval = max(nextInterval(s: s.easy.stability), goodInterval + 1)
             s.schedule(now: now, hardInterval: hardInterval, goodInterval: goodInterval, easyInterval: easyInterval)
-        } else if card.status == .review {
 
+        case .review:
             let interval = card.elapsedDays
             let lastDifficulty = card.difficulty
             let lastStability = card.stability
@@ -292,7 +293,7 @@ public struct FSRS {
         return s.recordLog(for: card, now: now)
     }
 
-    func initDS(s: inout SchedulingCards) {
+    public func initDS(s: inout SchedulingCards) {
         s.again.difficulty = initDifficulty(.again)
         s.again.stability = initStability(.again)
         s.hard.difficulty = initDifficulty(.hard)
@@ -303,7 +304,7 @@ public struct FSRS {
         s.easy.stability = initStability(.easy)
     }
 
-    func nextDS(
+    public func nextDS(
         _ scheduling: inout SchedulingCards,
         lastDifficulty d: Double,
         lastStability s: Double,
@@ -325,28 +326,28 @@ public struct FSRS {
         )
     }
 
-    func initStability(_ rating: Rating) -> Double {
+    public func initStability(_ rating: Rating) -> Double {
         return initStability(r: rating.rawValue)
     }
 
-    func initStability(r: Int) -> Double {
+    public func initStability(r: Int) -> Double {
         return max(p.w[r - 1], 0.1)
     }
 
-    func initDifficulty(_ rating: Rating) -> Double {
+    public func initDifficulty(_ rating: Rating) -> Double {
         return initDifficulty(r: rating.rawValue)
     }
 
-    func initDifficulty(r: Int) -> Double {
+    public func initDifficulty(r: Int) -> Double {
         return min(max(p.w[4] - p.w[5] * Double(r - 3), 1.0), 10.0)
     }
 
-    func nextInterval(s: Double) -> Double {
+    public func nextInterval(s: Double) -> Double {
         let interval = s * 9 * (1 / p.requestRetention - 1)
         return min(max(round(interval), 1), p.maximumInterval)
     }
 
-    func nextDifficulty(d: Double, rating: Rating) -> Double {
+    public func nextDifficulty(d: Double, rating: Rating) -> Double {
         let r = rating.rawValue
         let nextD = d - p.w[6] * Double(r - 3)
         return min(max(meanReversion(p.w[4], current: nextD), 1.0), 10.0)
@@ -356,13 +357,13 @@ public struct FSRS {
         return p.w[7] * initial + (1 - p.w[7]) * current
     }
 
-    func nextRecallStability(d: Double, s: Double, r: Double, rating: Rating) -> Double {
+    public func nextRecallStability(d: Double, s: Double, r: Double, rating: Rating) -> Double {
         let hardPenalty = (rating == .hard) ? p.w[15] : 1
         let easyBonus = (rating == .easy) ? p.w[16] : 1
         return s * (1 + exp(p.w[8]) * (11 - d) * pow(s, -p.w[9]) * (exp((1 - r) * p.w[10]) - 1) * hardPenalty * easyBonus)
     }
 
-    func nextForgetStability(d: Double, s: Double, r: Double) -> Double {
-        return p.w[11] * pow(d, -p.w[12]) * (pow(s + 1.0, p.w[13]) - 1) * exp((1 - r) * p.w[14])
+    public func nextForgetStability(d: Double, s: Double, r: Double) -> Double {
+        p.w[11] * pow(d, -p.w[12]) * (pow(s + 1.0, p.w[13]) - 1) * exp((1 - r) * p.w[14])
     }
 }
