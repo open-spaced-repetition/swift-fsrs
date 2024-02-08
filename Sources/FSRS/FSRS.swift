@@ -178,7 +178,7 @@ public struct SchedulingCards: Equatable, Codable {
         case .minute:
             seconds = Constants.secondsInMinute
         case .hour:
-            seconds = Constants.secondsInMinute
+            seconds = Constants.secondsInHour
         case .day:
             seconds = Constants.secondsInDay
         default:
