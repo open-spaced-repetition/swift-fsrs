@@ -106,8 +106,8 @@ public struct SchedulingInfo {
         self.card = reference
         self.reviewLog = ReviewLog(
             rating: rating,
-            elapsedDays: reference.scheduledDays,
-            scheduledDays: current.elapsedDays,
+            elapsedDays: reference.elapsedDays,
+            scheduledDays: current.scheduledDays,
             review: review,
             status: current.status
         )
