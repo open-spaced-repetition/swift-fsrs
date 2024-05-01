@@ -134,7 +134,6 @@ public struct SchedulingCards: Equatable, Codable {
             hard.status = .learning
             good.status = .learning
             easy.status = .review
-            again.lapses += 1
         case .learning, .relearning:
             again.status = status
             hard.status = status
