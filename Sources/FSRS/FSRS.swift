@@ -75,10 +75,15 @@ public struct Card: Equatable, Codable {
         self.lastReview = lastReview
     }
 
-    func retrievability(for now: Date) -> Double? {
+    public func retrievability(for now: Date, params: Params) -> Double? {
         guard status == .review else { return nil }
         let elapsedDays = max(0, (now.timeIntervalSince(lastReview) / Constants.secondsInDay))
-        return exp(log(0.9) * Double(elapsedDays) / stability)
+        return forgettingCurve(elapsedDays: elapsedDays, params: params)
+    }
+
+    public func forgettingCurve(elapsedDays: Double, params p: Params) -> Double {
+        guard !stability.isZero else { return 0 }
+        return pow(1.0 + p.factor * elapsedDays / stability, p.decay)
     }
 
     func printLog() {
@@ -198,11 +203,15 @@ public struct SchedulingCards: Equatable, Codable {
 }
 
 public struct Params {
+    public var decay: Double
+    public var factor: Double
     public var requestRetention: Double
     public var maximumInterval: Double
     public var w: [Double]
 
     public init() {
+        self.decay = -0.5
+        self.factor = pow(0.9, (1.0 / self.decay)) - 1.0
         self.requestRetention = 0.9
         self.maximumInterval = 36500
         self.w = [
@@ -271,13 +280,8 @@ public struct FSRS {
             s.schedule(now: now, hardInterval: hardInterval, goodInterval: goodInterval, easyInterval: easyInterval)
 
         case .review:
-            let interval = card.elapsedDays
-            let lastDifficulty = card.difficulty
-            let lastStability = card.stability
-
-            let retrievability = pow(1 + Double(interval) / (9 * lastStability), -1)
-
-            nextDS(&s, lastDifficulty: lastDifficulty, lastStability: lastStability, retrievability: retrievability)
+            let retrievability = card.forgettingCurve(elapsedDays: card.elapsedDays, params: p)
+            nextDS(&s, lastDifficulty: card.difficulty, lastStability: card.stability, retrievability: retrievability)
 
             var hardInterval = nextInterval(s: s.hard.stability)
             var goodInterval = nextInterval(s: s.good.stability)
@@ -326,34 +330,42 @@ public struct FSRS {
     }
 
     public func initStability(_ rating: Rating) -> Double {
-        return initStability(r: rating.rawValue)
+        initStability(r: rating.rawValue)
     }
 
     public func initStability(r: Int) -> Double {
-        return max(p.w[r - 1], 0.1)
+        max(p.w[r - 1], 0.1)
     }
 
     public func initDifficulty(_ rating: Rating) -> Double {
-        return initDifficulty(r: rating.rawValue)
+        initDifficulty(r: rating.rawValue)
     }
 
     public func initDifficulty(r: Int) -> Double {
-        return min(max(p.w[4] - p.w[5] * Double(r - 3), 1.0), 10.0)
+        min(max(p.w[4] - p.w[5] * Double(r - 3), 1.0), 10.0)
     }
 
     public func nextInterval(s: Double) -> Double {
-        let interval = s * 9 * (1 / p.requestRetention - 1)
-        return min(max(round(interval), 1), p.maximumInterval)
+        let ivl = (s / p.factor) * (pow(p.requestRetention, 1.0 / p.decay) - 1.0)
+        return constrainInterval(ivl: ivl)
     }
 
     public func nextDifficulty(d: Double, rating: Rating) -> Double {
         let r = rating.rawValue
         let nextD = d - p.w[6] * Double(r - 3)
-        return min(max(meanReversion(p.w[4], current: nextD), 1.0), 10.0)
+        return constrainDifficulty(meanReversion(p.w[4], current: nextD))
+    }
+    
+    func constrainDifficulty(_ d: Double) -> Double {
+        min(max(d, 1), 10)
+    }
+    
+    func constrainInterval(ivl: Double) -> Double {
+        min(max(round(ivl), 1), p.maximumInterval)
     }
 
     func meanReversion(_ initial: Double, current: Double) -> Double {
-        return p.w[7] * initial + (1 - p.w[7]) * current
+        p.w[7] * initial + (1 - p.w[7]) * current
     }
 
     public func nextRecallStability(d: Double, s: Double, r: Double, rating: Rating) -> Double {
