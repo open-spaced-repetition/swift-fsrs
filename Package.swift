@@ -5,16 +5,26 @@ import PackageDescription
 let package = Package(
     name: "fsrs",
     platforms: [
-        .macOS(.v10_13), .iOS(.v14),
+        .macOS(.v12), .iOS(.v15),
     ],
     products: [
         .library(name: "FSRS", targets: ["FSRS"]),
     ],
+    dependencies: [
+        .package(url: "https://github.com/apple/swift-numerics", from: "1.0.0"),
+    ],
     targets: [
-      .target(name: "FSRS"),
-      .testTarget(
-        name: "FSRSTests",
-        dependencies: [ "FSRS" ]
-      ),
+        .target(
+            name: "FSRS",
+            dependencies: [
+                .product(name: "Numerics", package: "swift-numerics"),
+            ]
+        ),
+        .testTarget(
+            name: "FSRSTests",
+            dependencies: [
+                "FSRS"
+            ]
+        ),
     ]
 )
