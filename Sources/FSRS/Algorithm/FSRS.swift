@@ -22,7 +22,7 @@ public class FSRS: FSRSAlgorithm {
         }
     }
     
-    override init(parameters: FSRSParameters) {
+    override public init(parameters: FSRSParameters) {
         super.init(parameters: parameters)
     }
     
@@ -84,7 +84,7 @@ public class FSRS: FSRSAlgorithm {
      * const recordLog = f.repeat(card, new Date(), repeatAfterHandler);
      * ```
      */
-    func `repeat`(
+    public func `repeat`(
         card: Card,
         now: Date,
         _ completion: ((_ log: IPreview) -> IPreview)? = nil

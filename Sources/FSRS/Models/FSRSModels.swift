@@ -144,7 +144,7 @@ public struct Card: Equatable, Codable {
 }
 
 public struct RecordLogItem: Codable, Equatable {
-    var card: Card
+    public var card: Card
     var log: ReviewLog
 }
 
@@ -157,7 +157,7 @@ public struct FSRSParameters: Codable, Equatable {
     var enableFuzz: Bool
     var enableShortTerm: Bool
     
-    init(
+    public init(
         requestRetention: Double? = nil,
         maximumInterval: Double? = nil,
         w: [Double]? = nil,
