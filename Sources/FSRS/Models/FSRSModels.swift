@@ -12,7 +12,7 @@ public enum CardState: Int, Codable {
       case review = 2
       case relearning = 3
 
-    var stringValue: String {
+    public var stringValue: String {
         switch self {
         case .new: return "new"
         case .learning: return "learning"
