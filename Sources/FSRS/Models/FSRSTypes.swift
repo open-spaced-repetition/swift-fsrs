@@ -13,7 +13,7 @@ public struct IPreview {
         self.recordLog = recordLog
     }
     
-    subscript(rating: Rating) -> RecordLogItem? {
+    public subscript(rating: Rating) -> RecordLogItem? {
         get {
             recordLog[rating]
         }
