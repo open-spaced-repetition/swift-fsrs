@@ -38,7 +38,7 @@ public enum Rating: Int, Codable, Equatable, CaseIterable  {
 
 public struct ReviewLog: Equatable, Codable, Hashable {
     public var rating: Rating          // Rating of the review (Again, Hard, Good, Easy)
-    public var state: CardState?       // State of the review (New, Learning, Review, public Relearning)
+    public var state: CardState?       // State of the review (New, Learning, Review, Relearning)
     public var due: Date?              // Date of the last scheduling
     public var stability: Double?      // Memory stability during the review
     public var difficulty: Double?     // Difficulty of the card during the review
