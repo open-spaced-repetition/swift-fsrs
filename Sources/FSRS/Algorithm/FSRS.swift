@@ -154,7 +154,7 @@ public class FSRS: FSRSAlgorithm {
      * const recordLogItem = f.repeat(card, new Date(), Rating.Again, nextAfterHandler);
      * ```
      */
-    func next(
+    public func next(
         card: Card,
         now: Date,
         grade: Rating,
@@ -220,7 +220,7 @@ public class FSRS: FSRSAlgorithm {
      * const rollbackFromAfterHandler = f.rollback(card, log, cardAfterHandler);
      * ```
      */
-    func rollback(
+    public func rollback(
         card: Card,
         log: ReviewLog,
         completion: ((Card) -> Card)? = nil
@@ -319,7 +319,7 @@ public class FSRS: FSRSAlgorithm {
      * const forgetFromAfterHandler = f.forget(card, date_scheduler(now, 1, true), false, forgetAfterHandler);
      * ```
      */
-    func forget(
+    public func forget(
         card: Card,
         now: Date,
         resetCount: Bool = false,
@@ -394,7 +394,7 @@ public class FSRS: FSRSAlgorithm {
           console.log(results_short)
      * ```
      */
-    func reschedule(
+    public func reschedule(
         currentCard: Card,
         reviews: [ReviewLog],
         options: RescheduleOptions
