@@ -25,7 +25,7 @@ public enum CardState: Int, Codable {
 public enum Rating: Int, Codable, Equatable, CaseIterable  {
     case manual = 0, again = 1, hard, good, easy
 
-    var stringValue: String {
+    public var stringValue: String {
         switch self {
         case .manual: return "manual"
         case .again: return "again"
@@ -36,16 +36,16 @@ public enum Rating: Int, Codable, Equatable, CaseIterable  {
     }
 }
 
-public struct ReviewLog: Equatable, Codable {
-    var rating: Rating          // Rating of the review (Again, Hard, Good, Easy)
-    var state: CardState?       // State of the review (New, Learning, Review, Relearning)
-    var due: Date?              // Date of the last scheduling
-    var stability: Double?      // Memory stability during the review
-    var difficulty: Double?     // Difficulty of the card during the review
-    var elapsedDays: Double     // Number of days elapsed since the last review
-    var lastElapsedDays: Double // Number of days between the last two reviews
-    var scheduledDays: Double   // Number of days until the next review
-    var review: Date            // Date of the review
+public struct ReviewLog: Equatable, Codable, Hashable {
+    public var rating: Rating          // Rating of the review (Again, Hard, Good, Easy)
+    public var state: CardState?       // State of the review (New, Learning, Review, Relearning)
+    public var due: Date?              // Date of the last scheduling
+    public var stability: Double?      // Memory stability during the review
+    public var difficulty: Double?     // Difficulty of the card during the review
+    public var elapsedDays: Double     // Number of days elapsed since the last review
+    public var lastElapsedDays: Double // Number of days between the last two reviews
+    public var scheduledDays: Double   // Number of days until the next review
+    public var review: Date            // Date of the review
 
     public init(
         rating: Rating,
@@ -69,7 +69,7 @@ public struct ReviewLog: Equatable, Codable {
         self.review = review
     }
 
-    var newLog: ReviewLog {
+    public var newLog: ReviewLog {
         ReviewLog(
             rating: rating,
             state: state,
@@ -84,7 +84,7 @@ public struct ReviewLog: Equatable, Codable {
     }
 }
 
-public struct Card: Equatable, Codable {
+public struct Card: Equatable, Codable, Hashable {
     public var due: Date             // Date when the card is next due for review
     public var stability: Double     // A measure of how well the information is retained
     public var difficulty: Double    // Reflects the inherent difficulty of the card content
@@ -117,7 +117,7 @@ public struct Card: Equatable, Codable {
         self.lastReview = lastReview
     }
 
-    var newCard: Card {
+    public var newCard: Card {
         Card(
             due: due,
             stability: stability,
@@ -143,19 +143,24 @@ public struct Card: Equatable, Codable {
     }
 }
 
-public struct RecordLogItem: Codable, Equatable {
+public struct RecordLogItem: Codable, Equatable, Hashable {
     public var card: Card
-    var log: ReviewLog
+    public var log: ReviewLog
+    
+    public init(card: Card, log: ReviewLog) {
+        self.card = card
+        self.log = log
+    }
 }
 
 public typealias RecordLog = [Rating: RecordLogItem]
 
 public struct FSRSParameters: Codable, Equatable {
-    var requestRetention: Double
-    var maximumInterval: Double
-    var w: [Double]
-    var enableFuzz: Bool
-    var enableShortTerm: Bool
+    public var requestRetention: Double
+    public var maximumInterval: Double
+    public var w: [Double]
+    public var enableFuzz: Bool
+    public var enableShortTerm: Bool
     
     public init(
         requestRetention: Double? = nil,
@@ -178,11 +183,11 @@ public struct FSRSReview: Codable {
      * 0-4: Manual, Again, Hard, Good, Easy
      * = revlog.rating
      */
-    var rating: Rating
+    public var rating: Rating
     /**
      * The number of days that passed
      * = revlog.elapsed_days
      * = round(revlog[-1].review - revlog[-2].review)
      */
-    var deltaT: Double
+    public var deltaT: Double
 }
