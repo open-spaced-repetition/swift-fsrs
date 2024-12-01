@@ -278,8 +278,8 @@ class FSRSReschduleTests: XCTestCase {
                 rating: .manual,
                 state: .review,
                 due: calendar.date(from: DateComponents(year: 2024, month: 8, day: 13, hour: 1, minute: 0))!,
-                stability: 18.67917062,
-                difficulty: 3.2828565,
+                stability: 18.80877052,
+                difficulty: 3.22450159,
                 elapsedDays: 1,
                 lastElapsedDays: 1,
                 scheduledDays: 19,
@@ -288,8 +288,8 @@ class FSRSReschduleTests: XCTestCase {
         let nextItemExpected = RecordLogItem(
             card: Card(
                 due: calendar.date(from: DateComponents(year: 2024, month: 9, day: 9, hour: 1, minute: 0))!,
-                stability: 24.84609459,
-                difficulty: 3.2828565,
+                stability: 24.7796143,
+                difficulty: 3.28258807,
                 elapsedDays: 1,
                 scheduledDays: 25,
                 reps: 4,
@@ -341,8 +341,8 @@ class FSRSReschduleTests: XCTestCase {
         let expected = RecordLogItem(
             card: Card(
                 due: calendar.date(from: DateComponents(year: 2024, month: 9, day: 04, hour: 17, minute: 0))!, // '2024-09-04T17:00:00.000Z'
-                stability: 18.67917062,
-                difficulty: 3.2828565,
+                stability: 18.80877052,
+                difficulty: 3.22450159,
                 elapsedDays: 1,
                 scheduledDays: 21,
                 reps: 3,
@@ -354,8 +354,8 @@ class FSRSReschduleTests: XCTestCase {
                 rating: .manual,
                 state: .review,
                 due: calendar.date(from: DateComponents(year: 2024, month: 8, day: 13, hour: 1, minute: 0))!, // '2024-08-13T01:00:00.000Z'
-                stability: 18.67917062,
-                difficulty: 3.2828565,
+                stability: 18.80877052,
+                difficulty: 3.22450159,
                 elapsedDays: 1,
                 lastElapsedDays: 1,
                 scheduledDays: 19,
@@ -401,8 +401,8 @@ class FSRSReschduleTests: XCTestCase {
         let expected = RecordLogItem(
             card: Card(
                 due: calendar.date(from: DateComponents(year: 2024, month: 9, day: 9, hour: 1, minute: 0))!, // '2024-09-09T01:00:00.000Z'
-                stability: 24.84609459,
-                difficulty: 3.2828565,
+                stability: 24.86663381,
+                difficulty: 3.22450159,
                 elapsedDays: 1,
                 scheduledDays: 25,
                 reps: 4,
@@ -414,8 +414,8 @@ class FSRSReschduleTests: XCTestCase {
                 rating: .good,
                 state: .review,
                 due: calendar.date(from: DateComponents(year: 2024, month: 8, day: 14, hour: 1, minute: 0))!, // '2024-08-14T01:00:00.000Z'
-                stability: 21.79806877,
-                difficulty: 3.2828565,
+                stability: 21.86357285,
+                difficulty: 3.22450159,
                 elapsedDays: 1,
                 lastElapsedDays: 1,
                 scheduledDays: 22,
@@ -495,9 +495,13 @@ class FSRSReschduleTests: XCTestCase {
 
         XCTAssertNotNil(resultsShort.rescheduleItem)
         XCTAssertEqual(resultsShort.collections.count, 4)
-        XCTAssertEqual(ivlHistoryShort, [0, 4, 15, 40])
-        XCTAssertEqual(sHistoryShort, [3.1262, 4.35097949, 14.94870008, 39.68105285])
-        XCTAssertEqual(dHistoryShort, [5.31457783, 5.26703555, 5.22060576, 5.17526243])
+        XCTAssertEqual(ivlHistoryShort, [0, 4, 14, 38])
+        XCTAssertEqual(sHistoryShort, [
+            3.173, 4.46685806, 14.21728391, 37.90805078,
+        ])
+        XCTAssertEqual(dHistoryShort, [
+            5.28243442, 5.27296793, 5.26354498, 5.25416538,
+        ])
 
         // Switch to long-term scheduler
         f.parameters.enableShortTerm = false
@@ -512,9 +516,9 @@ class FSRSReschduleTests: XCTestCase {
 
         XCTAssertNotNil(results.rescheduleItem)
         XCTAssertEqual(results.collections.count, 4)
-        XCTAssertEqual(ivlHistoryLong, [3, 4, 14, 39])
-        XCTAssertEqual(sHistoryLong, [3.1262, 3.1262, 13.89723677, 38.7694699])
-        XCTAssertEqual(dHistoryLong, [5.31457783, 5.26703555, 5.22060576, 5.17526243])
+        XCTAssertEqual(ivlHistoryLong, [3, 4, 13, 37])
+        XCTAssertEqual(sHistoryLong, [3.173, 3.173, 12.96611898, 36.73449305])
+        XCTAssertEqual(dHistoryLong, [5.28243442, 5.27296793, 5.26354498, 5.25416538])
     }
 
     func testCurrentCardEqualRescheduleCard() {
@@ -535,12 +539,12 @@ class FSRSReschduleTests: XCTestCase {
         }
 
         let currentCard = Card(
-            due: calendar.date(from: DateComponents(year: 2024, month: 11, day: 07))!, // 2024-11-07T00:00:00.000Z
-            stability: 39.68105285,
-            difficulty: 5.17526243,
+            due: calendar.date(from: DateComponents(year: 2024, month: 11, day: 05))!, // 2024-11-07T00:00:00.000Z
+            stability: 37.90805078,
+            difficulty: 5.25416538,
             elapsedDays: 11,
-            scheduledDays: 40,
-            reps: 4,
+            scheduledDays: 9,
+            reps: 5,
             lapses: 0,
             state: .review,
             lastReview: calendar.date(from: DateComponents(year: 2024, month: 10, day: 27))! // 2024-10-27T00:00:00.000Z

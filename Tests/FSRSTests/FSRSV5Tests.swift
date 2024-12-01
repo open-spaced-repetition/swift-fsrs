@@ -17,9 +17,9 @@ class FSRSV5Tests: XCTestCase {
         return res
     }()
     let w: [Double] = [
-        0.4197, 1.1869, 3.0412, 15.2441, 7.1434, 0.6477, 1.0007, 0.0674, 1.6597,
-        0.1712, 1.1178, 2.0225, 0.0904, 0.3025, 2.1214, 0.2498, 2.9466, 0.4891,
-        0.6468,
+        0.40255, 1.18385, 3.173, 15.69105, 7.1949, 0.5345, 1.4604, 0.0046, 1.54575,
+        0.1192, 1.01925, 1.9395, 0.11, 0.29605, 2.2698, 0.2315, 2.9898, 0.51655,
+        0.6621,
     ]
 
     override func setUp() {
@@ -63,7 +63,7 @@ class FSRSV5Tests: XCTestCase {
             schedulingCards = f.repeat(card: card, now: now)
         }
 
-        XCTAssertEqual(ivlHistory, [0, 4, 17, 62, 198, 563, 0, 0, 9, 27, 74, 190, 457])
+        XCTAssertEqual(ivlHistory, [0, 4, 14, 44, 125, 328, 0, 0, 7, 16, 34, 71, 142,])
     }
 
     func testMemoryState() {
@@ -84,8 +84,8 @@ class FSRSV5Tests: XCTestCase {
 
         let stability = schedulingCards[Rating.good]!.card.stability
         let difficulty = schedulingCards[Rating.good]!.card.difficulty
-        XCTAssertEqual(stability, 71.4554, accuracy: 0.0001)
-        XCTAssertEqual(difficulty, 5.0976, accuracy: 0.0001)
+        XCTAssertEqual(stability, 48.4848, accuracy: 0.0001)
+        XCTAssertEqual(difficulty, 7.0866, accuracy: 0.0001)
     }
 
     func testFirstRepeat() {
@@ -103,7 +103,7 @@ class FSRSV5Tests: XCTestCase {
 
         for item in schedulingCards.recordLog {
             let firstCard = item.value.card
-            stability.append(firstCard.stability.toFixedNumber(4))
+            stability.append(firstCard.stability.toFixedNumber(5))
             difficulty.append(firstCard.difficulty.toFixedNumber(8))
             reps.append(firstCard.reps)
             lapses.append(firstCard.lapses)
@@ -112,12 +112,12 @@ class FSRSV5Tests: XCTestCase {
             states.append(firstCard.state)
         }
 
-        XCTAssertEqual(Set(stability), Set([0.4197, 1.1869, 3.0412, 15.2441]))
-        XCTAssertEqual(Set(difficulty), Set([7.1434, 6.23225985, 4.49094334, 1.16304343]))
+        XCTAssertEqual(Set(stability), Set([0.40255, 1.18385, 3.173, 15.69105]))
+        XCTAssertEqual(Set(difficulty), Set([7.1949, 6.48830527, 5.28243442, 3.22450159]))
         XCTAssertEqual(Set(reps), Set([1, 1, 1, 1]))
         XCTAssertEqual(Set(lapses), Set([0, 0, 0, 0]))
         XCTAssertEqual(Set(elapsedDays), Set([0, 0, 0, 0]))
-        XCTAssertEqual(Set(scheduledDays), Set([0, 0, 0, 15]))
+        XCTAssertEqual(Set(scheduledDays), Set([0, 0, 0, 16]))
         XCTAssertEqual(Set(states), Set([.learning, .learning, .learning, .review]))
     }
 }
@@ -142,8 +142,8 @@ class RetrievabilityTests: XCTestCase {
     func testRetrievabilityPercentageForReviewCards() {
         let card = FSRSDefaults().createEmptyCard(now: dateFormatter.date(from: "2023-12-01 04:00:00")!)
         let sc = fsrs.repeat(card: card, now: dateFormatter.date(from: "2023-12-01 04:05:00")!)
-        let expectedResults = ["100.00%", "100.00%", "100.00%", "90.26%"]
-        let expectedNumbers = [1.0, 1.0, 1.0, 0.9026208]
+        let expectedResults = ["100.00%", "100.00%", "100.00%", "89.83%"]
+        let expectedNumbers = [1.0, 1.0, 1.0, 0.89832125]
 
         for grade in Rating.allCases {
             if grade != .manual {
