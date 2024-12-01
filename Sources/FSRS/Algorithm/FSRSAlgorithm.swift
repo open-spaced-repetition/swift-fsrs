@@ -109,7 +109,6 @@ public class FSRSAlgorithm {
      * If fuzzing is disabled or ivl is less than 2.5, it returns the original interval.
      * @param {number} ivl - The interval to be fuzzed.
      * @param {number} elapsed_days t days since the last review
-     * @param {number} enable_fuzz - This adds a small random delay to the new interval time to prevent cards from sticking together and always being reviewed on the same day.
      * @return {number} - The fuzzed interval.
      **/
     func applyFuzz(ivl: Double, elapsedDays: Double) -> Int {
@@ -135,15 +134,24 @@ public class FSRSAlgorithm {
     }
 
     /**
+     * @see https://github.com/open-spaced-repetition/fsrs4anki/issues/697
+     */
+    func linearDamping(deltaD: Double, oldD: Double) -> Double {
+        (deltaD * (10 - oldD) / 9).toFixedNumber(8)
+    }
+    
+    /**
      * The formula used is :
-     * $$\text{next}_d = D - w_6 \cdot (g - 3)$$
+     * $$\text{delta}_d = -w_6 \cdot (g - 3)$$
+     * $$\text{next}_d = D + \text{linear damping}(\text{delta}_d , D)$$
      * $$D^\prime(D,R) = w_7 \cdot D_0(4) +(1 - w_7) \cdot \text{next}_d$$
      * @param {number} d Difficulty $$D \in [1,10]$$
      * @param {Grade} g Grade (rating at Anki) [1.again,2.hard,3.good,4.easy]
      * @return {number} $$\text{next}_D$$
      */
     func nextDifficulty(d: Double, g: Rating) -> Double {
-        let nextD = d - (parameters.w[6] * Double(g.rawValue - 3))
+        let deltaD = -(parameters.w[6] * Double(g.rawValue - 3))
+        let nextD = d + linearDamping(deltaD: deltaD, oldD: d)
         return constrainDifficulty(r: meanReversion(initValue: initDifficulty(.easy), current: nextD))
     }
     

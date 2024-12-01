@@ -14,9 +14,9 @@ class YourTestClass: XCTestCase {
 
     func testDefaultParams() {
         let expectedW = [
-          0.4072, 1.1829, 3.1262, 15.4722, 7.2102, 0.5316, 1.0651, 0.0234, 1.616,
-          0.1544, 1.0824, 1.9813, 0.0953, 0.2975, 2.2042, 0.2407, 2.9466, 0.5034,
-          0.6567,
+            0.40255, 1.18385, 3.173, 15.69105, 7.1949, 0.5345, 1.4604, 0.0046, 1.54575,
+            0.1192, 1.01925, 1.9395, 0.11, 0.29605, 2.2698, 0.2315, 2.9898, 0.51655,
+            0.6621,
         ]
         let defaults = FSRSDefaults()
         XCTAssertEqual(defaults.defaultRequestRetention, 0.9)
@@ -31,6 +31,16 @@ class YourTestClass: XCTestCase {
         XCTAssertEqual(params.maximumInterval, defaults.defaultMaximumInterval)
         XCTAssertEqual(params.w, expectedW)
         XCTAssertEqual(params.enableFuzz, defaults.defaultEnableFuzz)
+        
+        let params2 = defaults.generatorParameters(props: .init(w: [
+            0.4, 0.6, 2.4, 5.8, 4.93, 0.94, 0.86, 0.01, 1.49, 0.14, 0.94, 2.18,
+            0.05, 0.34, 1.26, 0.29, 2.61,
+        ]))
+        
+        XCTAssertEqual(params2.w, [
+            0.4, 0.6, 2.4, 5.8, 6.81, 0.44675014, 1.36, 0.01, 1.49, 0.14, 0.94, 2.18,
+            0.05, 0.34, 1.26, 0.29, 2.61, 0.0, 0.0,
+        ])
     }
     
     func testDefaultCard() {
