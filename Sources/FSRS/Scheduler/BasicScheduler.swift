@@ -141,9 +141,8 @@ class BasicScheduler: AbstractScheduler {
         retrievability: Double
     ) {
         nextAgain.difficulty = algorithm.nextDifficulty(d: difficulty, g: .again)
-        nextAgain.stability = algorithm.nextForgetStability(
-            d: difficulty, s: stability, r: retrievability
-        )
+        let nextSMin = stability / exp(algorithm.parameters.w[17] * algorithm.parameters.w[18])
+        nextAgain.stability = min(nextSMin.toFixedNumber(8), algorithm.nextForgetStability(d: difficulty, s: stability, r: retrievability))
         
         nextHard.difficulty = algorithm.nextDifficulty(d: difficulty, g: .hard)
         nextHard.stability = algorithm.nextRecallStability(
