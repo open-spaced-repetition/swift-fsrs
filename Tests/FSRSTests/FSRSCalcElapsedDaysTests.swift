@@ -15,11 +15,6 @@ import XCTest
 
 class FSRSCalcElapsedDaysTests: XCTestCase {
     var f: FSRS!
-    var calendar: Calendar = {
-        var res = Calendar.current
-        res.timeZone = .init(secondsFromGMT: 0)!
-        return res
-    }()
     let rids = [1704468957.0, 1704469645.0, 1704599572.0, 1705509507.0]
     
 
@@ -43,7 +38,7 @@ class FSRSCalcElapsedDaysTests: XCTestCase {
                 let now = Date(timeIntervalSince1970: rid)
                 let log = try f.next(card: card, now: now, grade: grade[index])
                 card = log.card
-                XCTAssertEqual(expected[index], log.card.stability)
+                XCTAssertEqual(card.stability, expected[index])
             } catch {
                 print(error.localizedDescription)
             }

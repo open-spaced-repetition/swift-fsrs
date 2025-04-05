@@ -196,7 +196,7 @@ public class FSRSAlgorithm {
         let p3 = exp((1 - r) * parameters.w[14])
         return FSRSHelper.clamp(
             parameters.w[11] * p1 * p2 * p3,
-            0.01,
+            FSRSDefaults.S_MIN,
             36500
         ).toFixedNumber(8)
     }
@@ -211,7 +211,7 @@ public class FSRSAlgorithm {
         let part = Double(g.rawValue) - 3 + parameters.w[18]
         return FSRSHelper.clamp(
             s * exp(parameters.w[17] * part),
-            0.01,
+            FSRSDefaults.S_MIN,
             36500
         ).toFixedNumber(8)
     }

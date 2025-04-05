@@ -7,6 +7,8 @@
 import Foundation
 
 public class FSRSDefaults {
+    static let S_MIN = 0.01
+
     var defaultRequestRetention = 0.9
     var defaultMaximumInterval = 36500.0
     var defaultW = [

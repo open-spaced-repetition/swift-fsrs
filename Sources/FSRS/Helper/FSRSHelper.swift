@@ -96,13 +96,11 @@ extension Date {
 
     static func dateDiffInDays(from last: Date?, to cur: Date) -> Double {
         guard let last = last else { return 0.0 }
-        let calendar = Calendar(identifier: .gregorian)
-        
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(secondsFromGMT: 0) ?? .autoupdatingCurrent
         let startOfLast = calendar.startOfDay(for: last)
         let startOfCur = calendar.startOfDay(for: cur)
-        
-        let components = calendar.dateComponents([.day], from: startOfLast, to: startOfCur)
-        return Double(components.day ?? 0)
+        return floor((startOfCur.timeIntervalSince1970 - startOfLast.timeIntervalSince1970) / (24 * 60 * 60))
     }
 
     func toString(_ dateFormat: String) -> String? {
