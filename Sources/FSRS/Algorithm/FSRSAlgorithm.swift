@@ -247,7 +247,7 @@ public class FSRSAlgorithm {
         if g == .manual {
             return FSRSState(stability: stability, difficulty: difficulty)
         }
-        if difficulty < 1 || stability < 0.01 {
+        if difficulty < 1 || stability < FSRSDefaults.S_MIN {
             throw FSRSError(.invalidParam)
         }
         let r = forgettingCurve(elapsedDays: t, stability: stability)
@@ -264,7 +264,7 @@ public class FSRSAlgorithm {
                 w18 = params.w[18]
             }
             let nextSMin = stability / exp(w17 * w18)
-            newS = FSRSHelper.clamp(nextSMin, 0.01, sAfterFail)
+            newS = FSRSHelper.clamp(nextSMin, FSRSDefaults.S_MIN, sAfterFail)
         }
         
         if t == 0 && params.enableShortTerm {

@@ -41,6 +41,16 @@ class YourTestClass: XCTestCase {
             0.4, 0.6, 2.4, 5.8, 6.81, 0.44675014, 1.36, 0.01, 1.49, 0.14, 0.94, 2.18,
             0.05, 0.34, 1.26, 0.29, 2.61, 0.0, 0.0,
         ])
+        
+        var w = Array(repeating: 0.0, count: 19)
+        var paramsClamp = defaults.generatorParameters(props: .init(w: w))
+        let w_min = FSRSDefaults.CLAMP_PARAMETERS.map({ $0[0] })
+        XCTAssertEqual(paramsClamp.w, w_min)
+        
+        w = Array(repeating: .infinity, count: 19)
+        paramsClamp = defaults.generatorParameters(props: .init(w: w))
+        let w_max = FSRSDefaults.CLAMP_PARAMETERS.map({ $0[1] })
+        XCTAssertEqual(paramsClamp.w, w_max)
     }
     
     func testDefaultCard() {
