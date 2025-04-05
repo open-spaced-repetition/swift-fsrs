@@ -94,6 +94,17 @@ extension Date {
         return r
     }
 
+    static func dateDiffInDays(from last: Date?, to cur: Date) -> Double {
+        guard let last = last else { return 0.0 }
+        let calendar = Calendar(identifier: .gregorian)
+        
+        let startOfLast = calendar.startOfDay(for: last)
+        let startOfCur = calendar.startOfDay(for: cur)
+        
+        let components = calendar.dateComponents([.day], from: startOfLast, to: startOfCur)
+        return Double(components.day ?? 0)
+    }
+
     func toString(_ dateFormat: String) -> String? {
         let formatter = DateFormatter()
         formatter.dateFormat = dateFormat
