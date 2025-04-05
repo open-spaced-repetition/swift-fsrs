@@ -191,3 +191,8 @@ public struct FSRSReview: Codable {
      */
     public var deltaT: Double
 }
+
+public struct FSRSState: Codable {
+    public var stability: Double
+    public var difficulty: Double
+}

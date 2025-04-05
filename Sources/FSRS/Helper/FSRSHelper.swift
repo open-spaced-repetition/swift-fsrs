@@ -49,6 +49,7 @@ public struct FSRSError: Error, Equatable {
         case invalidRating
         case invalidRetention
         case invalidParam
+        case invalidDeltaT
     }
     var errorReason: Reason
     var message: String?
