@@ -196,7 +196,7 @@ public class FSRSAlgorithm {
         let p3 = exp((1 - r) * parameters.w[14])
         return FSRSHelper.clamp(
             parameters.w[11] * p1 * p2 * p3,
-            0.01,
+            FSRSDefaults.S_MIN,
             36500
         ).toFixedNumber(8)
     }
@@ -211,7 +211,7 @@ public class FSRSAlgorithm {
         let part = Double(g.rawValue) - 3 + parameters.w[18]
         return FSRSHelper.clamp(
             s * exp(parameters.w[17] * part),
-            0.01,
+            FSRSDefaults.S_MIN,
             36500
         ).toFixedNumber(8)
     }
@@ -225,5 +225,53 @@ public class FSRSAlgorithm {
      */
     func forgettingCurve(elapsedDays: Double, stability: Double) -> Double {
         pow(1 + ((factor * elapsedDays) / stability), decay).toFixedNumber(8)
+    }
+    
+    /**
+      * Calculates the next state of memory based on the current state, time elapsed, and grade.
+      *
+      * @param memory_state - The current state of memory, which can be null.
+      * @param t - The time elapsed since the last review.
+      * @param {Rating} g Grade (Rating[0.Manual,1.Again,2.Hard,3.Good,4.Easy])
+      * @returns The next state of memory with updated difficulty and stability.
+      */
+    func nextState(memoryState: FSRSState?, t: Double, g: Rating) throws -> FSRSState {
+        var difficulty = memoryState?.difficulty ?? 0.0
+        var stability = memoryState?.stability ?? 0.0
+        if t < 0 {
+            throw FSRSError.init(.invalidDeltaT)
+        }
+        if difficulty == 0 && stability == 0 {
+            return FSRSState(stability: initStability(g: g), difficulty: initDifficulty(g))
+        }
+        if g == .manual {
+            return FSRSState(stability: stability, difficulty: difficulty)
+        }
+        if difficulty < 1 || stability < FSRSDefaults.S_MIN {
+            throw FSRSError(.invalidParam)
+        }
+        let r = forgettingCurve(elapsedDays: t, stability: stability)
+        let sAfterSuccess = nextRecallStability(d: difficulty, s: stability, r: r, g: g)
+        let sAfterFail = nextForgetStability(d: difficulty, s: stability, r: r)
+        let sAfterShortTerm = nextShortTermStability(s: stability, g: g)
+        var newS = sAfterSuccess
+        
+        if g == .again {
+            var w17 = 0.0
+            var w18 = 0.0
+            if params.enableShortTerm {
+                w17 = params.w[17]
+                w18 = params.w[18]
+            }
+            let nextSMin = stability / exp(w17 * w18)
+            newS = FSRSHelper.clamp(nextSMin, FSRSDefaults.S_MIN, sAfterFail)
+        }
+        
+        if t == 0 && params.enableShortTerm {
+            newS = sAfterShortTerm
+        }
+        
+        var newD = nextDifficulty(d: difficulty, g: g)
+        return FSRSState(stability: newS, difficulty: newD)
     }
 }

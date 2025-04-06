@@ -49,6 +49,7 @@ public struct FSRSError: Error, Equatable {
         case invalidRating
         case invalidRetention
         case invalidParam
+        case invalidDeltaT
     }
     var errorReason: Reason
     var message: String?
@@ -92,6 +93,15 @@ extension Date {
             r = floor(diff / 60)
         }
         return r
+    }
+
+    static func dateDiffInDays(from last: Date?, to cur: Date) -> Double {
+        guard let last = last else { return 0.0 }
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(secondsFromGMT: 0) ?? .autoupdatingCurrent
+        let startOfLast = calendar.startOfDay(for: last)
+        let startOfCur = calendar.startOfDay(for: cur)
+        return floor((startOfCur.timeIntervalSince1970 - startOfLast.timeIntervalSince1970) / (24 * 60 * 60))
     }
 
     func toString(_ dateFormat: String) -> String? {
