@@ -5,7 +5,6 @@
 //
 
 import Foundation
-import JavaScriptCore
 
 class FSRSAlea {
     struct State: Equatable {
@@ -14,20 +13,22 @@ class FSRSAlea {
         var s1: Double
         var s2: Double
     }
-    
+
     private var c: Int
     private var s0: Double
     private var s1: Double
     private var s2: Double
 
     init(seed: Any? = nil) {
-        let mash = MashWrapper()
+        var mash = MashWrapper()
         c = 1
         s0 = mash.do(" ")
         s1 = mash.do(" ")
         s2 = mash.do(" ")
 
-        let seedValue: String = String(describing: seed ?? Date().timeIntervalSince1970)
+        let seedValue: String = String(
+            describing: seed ?? Date().timeIntervalSince1970
+        )
         s0 -= mash.do(seedValue)
         if s0 < 0 { s0 += 1 }
         s1 -= mash.do(seedValue)
@@ -37,7 +38,7 @@ class FSRSAlea {
     }
 
     func next() -> Double {
-        let t = 2091639 * s0 + Double(c) * 2.3283064365386963e-10 // 2^-32
+        let t = 2_091_639 * s0 + Double(c) * 2.3283064365386963e-10  // 2^-32
         s0 = s1
         s1 = s2
         c = Int(floor(t))
@@ -58,43 +59,40 @@ class FSRSAlea {
     }
 }
 
+// Pure Swift implementation of the Alea Mash function (JS-free)
 struct MashWrapper {
-    var helper: JSContext? = {
-        let context = JSContext()
-        context?.exceptionHandler = {
-            print($0.debugDescription)
-            print($1.debugDescription)
-        }
-        context?.evaluateScript(
-"""
-function Mash() {
-    let n = 0xefc8249d;
-    return function mash(data) {
-        data = String(data);
-        for (let i = 0; i < data.length; i++) {
-            n += data.charCodeAt(i);
-            let h = 0.02519603282416938 * n;
-            n = h >>> 0;
-            h -= n;
-            h *= n;
-            n = h >>> 0;
-            h -= n;
-            n += h * 0x100000000; // 2^32
-        }
-        return (n >>> 0) * 2.3283064365386963e-10; // 2^-32
-    }
-}
-const mash = Mash()
-"""
-        )
-        return context
-    }()
+    // Internal 53-bit floating state mirroring JS number behavior
+    private var n: Double = 0xEFC8_249D as Double  // 0xefc8249d
 
-    func `do`(_ data: String) -> Double {
-        let value = helper?.evaluateScript(
-            "mash('\(data)')"
-        )
-        return value?.toDouble() ?? 0
+    // Convert a Double to JS ToUint32 result as Double (0..2^32-1)
+    @inline(__always)
+    private func toUint32(_ x: Double) -> Double {
+        if !x.isFinite { return 0 }
+        var r = fmod(x, 4294967296.0)  // 2^32
+        if r < 0 { r += 4294967296.0 }
+        return floor(r)
+    }
+
+    // Match JS String.charCodeAt over UTF-16 code units
+    private func utf16Codes(_ s: String) -> [UInt16] {
+        Array(s.utf16)
+    }
+
+    // Returns a double in [0,1) like the JS mash
+    mutating func `do`(_ data: String) -> Double {
+        // Coerce to String like JS does
+        let str = String(data)
+        for code in utf16Codes(str) {
+            n += Double(code)
+            var h = 0.02519603282416938 * n
+            n = toUint32(h)
+            h -= n
+            h *= n
+            n = toUint32(h)
+            h -= n
+            n += h * 4294967296.0  // 2^32
+        }
+        return toUint32(n) * 2.3283064365386963e-10  // 2^-32
     }
 }
 
@@ -108,7 +106,7 @@ protocol PRNG {
 
 struct RandomNumberGeneratorWrapper: PRNG {
     private let alea: FSRSAlea
-    
+
     init(seed: Any? = nil) {
         alea = FSRSAlea(seed: seed)
     }
@@ -118,11 +116,11 @@ struct RandomNumberGeneratorWrapper: PRNG {
     }
 
     func int32() -> Int32 {
-        Int32(truncatingIfNeeded: Int(alea.next() * Double(0x100000000)))
+        Int32(truncatingIfNeeded: Int(alea.next() * Double(0x1_0000_0000)))
     }
 
     func double() -> Double {
-        next() + Double(UInt(next() * 0x200000)) * 1.1102230246251565e-16 // 2^-53
+        next() + Double(UInt(next() * 0x200000)) * 1.1102230246251565e-16  // 2^-53
     }
 
     func state() -> FSRSAlea.State {
@@ -137,4 +135,3 @@ struct RandomNumberGeneratorWrapper: PRNG {
 func alea(seed: Any? = nil) -> RandomNumberGeneratorWrapper {
     RandomNumberGeneratorWrapper(seed: seed)
 }
-
