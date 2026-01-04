@@ -181,7 +181,7 @@ public class FSRS: FSRSAlgorithm {
      * @param format  default:true , Convert the result to another type. (Optional)
      * @returns  The retrievability of the card,if format is true, the result is a string, otherwise it is a number
      */
-    func getRetrievability(
+    public func getRetrievability(
         card: Card,
         now: Date = Date()
     ) -> (string: String, number: Double) {
