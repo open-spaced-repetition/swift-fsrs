@@ -9,20 +9,45 @@ import Foundation
  * @see https://github.com/open-spaced-repetition/fsrs4anki/wiki/The-Algorithm#fsrs-45
  */
 public class FSRSAlgorithm {
+    /// Algorithm version inferred from the length of the active `w` vector.
+    /// Drives version-dispatched formulas (decay, factor, S_MIN, init difficulty
+    /// clamp location, short-term stability shape).
+    public var version: FSRSAlgorithmVersion {
+        FSRSAlgorithmVersion.detect(parameters.w)
+    }
+
+    /// Lower bound for stability. v5 = 0.01, v6 = 0.001 (matches upstream).
+    var sMin: Double {
+        switch version {
+        case .v5: return FSRSDefaults.S_MIN
+        case .v6: return FSRSDefaults.S_MIN_V6
+        }
+    }
+
     /**
-     * @default DECAY = -0.5
+     * @default DECAY = -0.5 for v5 ; -w[20] for v6
      */
-    let decay = -0.5
+    var decay: Double {
+        switch version {
+        case .v5: return -0.5
+        case .v6: return -parameters.w[20]
+        }
+    }
     /**
-     * FACTOR = Math.pow(0.9, 1 / DECAY) - 1= 19 / 81
+     * FACTOR = Math.pow(0.9, 1 / DECAY) - 1
      *
-     * $$\text{FACTOR} = \frac{19}{81}$$
-     * @default FACTOR = 19 / 81
+     * $$\text{FACTOR} = \frac{19}{81}$$ for v5 (decay = -0.5); derived from
+     * `w[20]` for v6.
      */
-    let factor: Double = 19 / 81
-    
+    var factor: Double {
+        switch version {
+        case .v5: return 19.0 / 81.0
+        case .v6: return (exp(log(0.9) / decay) - 1.0).toFixedNumber(8)
+        }
+    }
+
     let defaults = FSRSDefaults()
-    
+
     internal var parameters: FSRSParameters
 
     var params: FSRSParameters {
@@ -36,6 +61,12 @@ public class FSRSAlgorithm {
 
     func processparameters(_ parameters: FSRSParameters) {
         let parameters = defaults.generatorParameters(props: parameters)
+        // Assign self.parameters BEFORE computing intervalModifier — for v6
+        // that derivation reads w[20] via `decay`, and the value depends on
+        // the migrated/clamped parameters, not the raw input.
+        if parameters != self.parameters {
+            self.parameters = parameters
+        }
         if parameters.requestRetention.isFinite {
             do {
                 intervalModifier = try calculateIntervalModifier(
@@ -44,16 +75,12 @@ public class FSRSAlgorithm {
             } catch {
                 print(error.localizedDescription)
             }
-
-        }
-        if parameters != self.parameters {
-            self.parameters = parameters
         }
     }
 
     var intervalModifier: Double = 1
     var seed: String?
-    
+
     init(parameters: FSRSParameters) {
         self.parameters = parameters
         processparameters(parameters)
@@ -95,10 +122,19 @@ public class FSRSAlgorithm {
      * @param {Grade} g Grade (rating at Anki) [1.again,2.hard,3.good,4.easy]
      * @return {number} Difficulty $$D \in [1,10]$$
      */
+    /// Initial difficulty, clamped to `[1, 10]`. Used as the canonical entry
+    /// point — both v5 and v6 callers see clamped values here.
     func initDifficulty(_ grade: Rating) -> Double {
         constrainDifficulty(
             r: parameters.w[4] - exp((Double(grade.rawValue) - 1) * parameters.w[5]) + 1
         )
+    }
+
+    /// Raw, unclamped initial difficulty as defined by FSRS-6's
+    /// `init_difficulty`. Used by v6's `nextDifficulty` for mean reversion,
+    /// where the unclamped Easy-init value matters.
+    func initDifficultyRaw(_ grade: Rating) -> Double {
+        (parameters.w[4] - exp(Double(grade.rawValue - 1) * parameters.w[5]) + 1).toFixedNumber(8)
     }
 
     func constrainDifficulty(r: Double) -> Double {
@@ -152,7 +188,15 @@ public class FSRSAlgorithm {
     func nextDifficulty(d: Double, g: Rating) -> Double {
         let deltaD = -(parameters.w[6] * Double(g.rawValue - 3))
         let nextD = d + linearDamping(deltaD: deltaD, oldD: d)
-        return constrainDifficulty(r: meanReversion(initValue: initDifficulty(.easy), current: nextD))
+        // v5 mean-reverts toward the *clamped* easy-init value; v6 mean-reverts
+        // toward the *raw* easy-init value (this is part of v6's clamp-at-caller
+        // refactor and changes outputs even when w is otherwise comparable).
+        let initEasy: Double
+        switch version {
+        case .v5: initEasy = initDifficulty(.easy)
+        case .v6: initEasy = initDifficultyRaw(.easy)
+        }
+        return constrainDifficulty(r: meanReversion(initValue: initEasy, current: nextD))
     }
     
     /**
@@ -174,7 +218,7 @@ public class FSRSAlgorithm {
                 1 + exp(parameters.w[8]) * (11 - d) * pow(s, -(parameters.w[9])) *
                 (exp((1 - r) * parameters.w[10]) - 1) * hardPenalty * easyBound
             ),
-            0.01,
+            sMin,
             36500
         )
         .toFixedNumber(8)
@@ -196,7 +240,7 @@ public class FSRSAlgorithm {
         let p3 = exp((1 - r) * parameters.w[14])
         return FSRSHelper.clamp(
             parameters.w[11] * p1 * p2 * p3,
-            FSRSDefaults.S_MIN,
+            sMin,
             36500
         ).toFixedNumber(8)
     }
@@ -209,11 +253,25 @@ public class FSRSAlgorithm {
      */
     func nextShortTermStability(s: Double, g: Rating) -> Double {
         let part = Double(g.rawValue) - 3 + parameters.w[18]
-        return FSRSHelper.clamp(
-            s * exp(parameters.w[17] * part),
-            FSRSDefaults.S_MIN,
-            36500
-        ).toFixedNumber(8)
+        switch version {
+        case .v5:
+            return FSRSHelper.clamp(
+                s * exp(parameters.w[17] * part),
+                sMin,
+                36500
+            ).toFixedNumber(8)
+        case .v6:
+            // v6 introduces an extra `s^-w[19]` factor and a Hard/Easy floor:
+            // when sinc < 1 for grade ≥ Hard, snap it to 1 so non-Again grades
+            // never *shrink* stability under short-term scheduling.
+            let sinc = pow(s, -parameters.w[19]) * exp(parameters.w[17] * part)
+            let masked = g.rawValue >= Rating.hard.rawValue ? max(sinc, 1.0) : sinc
+            return FSRSHelper.clamp(
+                s * masked,
+                sMin,
+                36500
+            ).toFixedNumber(8)
+        }
     }
 
     /**
@@ -247,7 +305,7 @@ public class FSRSAlgorithm {
         if g == .manual {
             return FSRSState(stability: stability, difficulty: difficulty)
         }
-        if difficulty < 1 || stability < FSRSDefaults.S_MIN {
+        if difficulty < 1 || stability < sMin {
             throw FSRSError(.invalidParam)
         }
         let r = forgettingCurve(elapsedDays: t, stability: stability)
@@ -255,7 +313,7 @@ public class FSRSAlgorithm {
         let sAfterFail = nextForgetStability(d: difficulty, s: stability, r: r)
         let sAfterShortTerm = nextShortTermStability(s: stability, g: g)
         var newS = sAfterSuccess
-        
+
         if g == .again {
             var w17 = 0.0
             var w18 = 0.0
@@ -264,14 +322,14 @@ public class FSRSAlgorithm {
                 w18 = params.w[18]
             }
             let nextSMin = stability / exp(w17 * w18)
-            newS = FSRSHelper.clamp(nextSMin, FSRSDefaults.S_MIN, sAfterFail)
+            newS = FSRSHelper.clamp(nextSMin, sMin, sAfterFail)
         }
-        
+
         if t == 0 && params.enableShortTerm {
             newS = sAfterShortTerm
         }
-        
-        var newD = nextDifficulty(d: difficulty, g: g)
+
+        let newD = nextDifficulty(d: difficulty, g: g)
         return FSRSState(stability: newS, difficulty: newD)
     }
 }
