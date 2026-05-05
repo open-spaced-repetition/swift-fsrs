@@ -6,22 +6,8 @@
 
 import Foundation
 
-public class FSRS: FSRSAlgorithm {
-    
-    override func processparameters(_ parameters: FSRSParameters) {
-        let parameters = defaults.generatorParameters(props: parameters)
-        if parameters != self.parameters {
-            self.parameters = parameters
-        }
-        if parameters.requestRetention.isFinite {
-            do {
-                intervalModifier = try calculateIntervalModifier(requestRetention: parameters.requestRetention)
-            } catch {
-                print(error.localizedDescription)
-            }
-        }
-    }
-    
+public final class FSRS: FSRSAlgorithm, @unchecked Sendable {
+
     override public init(parameters: FSRSParameters) {
         super.init(parameters: parameters)
     }

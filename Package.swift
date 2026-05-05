@@ -16,7 +16,10 @@ let package = Package(
     targets: [
         .target(
             name: "FSRS",
-            path: "Sources/FSRS/"
+            path: "Sources/FSRS/",
+            swiftSettings: [
+                .enableExperimentalFeature("StrictConcurrency=complete"),
+            ]
         ),
         .testTarget(
             name: "FSRSTests",

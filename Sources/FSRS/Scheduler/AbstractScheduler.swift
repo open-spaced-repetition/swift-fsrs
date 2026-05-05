@@ -20,6 +20,9 @@ class AbstractScheduler: IScheduler {
     var reviewTime: Date
     var next: [Rating: RecordLogItem] = [:]
     var algorithm: FSRSAlgorithm
+    /// Per-call PRNG seed. Owned by the scheduler (which is created fresh per
+    /// review) so concurrent calls on a shared `FSRSAlgorithm` don't race.
+    let seed: String
 
     init(
         card: Card,
@@ -38,12 +41,7 @@ class AbstractScheduler: IScheduler {
         self.current.lastReview = reviewTime
         self.current.elapsedDays = interval
         self.current.reps += 1
-        self.algorithm.seed = "\(reviewTime.timeIntervalSince1970)_\(current.reps)_\(current.difficulty * current.stability)"
-    }
-
-    var seed: String {
-        get { algorithm.seed ?? "" }
-        set { algorithm.seed = newValue }
+        self.seed = "\(reviewTime.timeIntervalSince1970)_\(current.reps)_\(current.difficulty * current.stability)"
     }
 
     func review(_ g: Rating) -> RecordLogItem {

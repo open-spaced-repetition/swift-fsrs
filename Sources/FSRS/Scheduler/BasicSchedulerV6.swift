@@ -55,7 +55,8 @@ class BasicSchedulerV6: AbstractScheduler {
                 nextCard.learningSteps = 0
                 let interval = algorithm.nextInterval(
                     s: nextCard.stability,
-                    elapsedDays: current.elapsedDays
+                    elapsedDays: current.elapsedDays,
+                    seed: seed
                 )
                 nextCard.scheduledDays = Double(interval)
                 nextCard.due = Date.dateScheduler(now: reviewTime, t: Double(interval), unit: .days)
@@ -127,12 +128,12 @@ class BasicSchedulerV6: AbstractScheduler {
         _ nextEasy: inout Card,
         interval: Double
     ) {
-        var hardInterval = algorithm.nextInterval(s: nextHard.stability, elapsedDays: interval)
-        var goodInterval = algorithm.nextInterval(s: nextGood.stability, elapsedDays: interval)
+        var hardInterval = algorithm.nextInterval(s: nextHard.stability, elapsedDays: interval, seed: seed)
+        var goodInterval = algorithm.nextInterval(s: nextGood.stability, elapsedDays: interval, seed: seed)
         hardInterval = min(hardInterval, goodInterval)
         goodInterval = max(goodInterval, hardInterval + 1)
         let easyInterval = max(
-            algorithm.nextInterval(s: nextEasy.stability, elapsedDays: interval),
+            algorithm.nextInterval(s: nextEasy.stability, elapsedDays: interval, seed: seed),
             goodInterval + 1
         )
 
