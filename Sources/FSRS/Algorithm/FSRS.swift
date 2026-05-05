@@ -10,15 +10,15 @@ public class FSRS: FSRSAlgorithm {
     
     override func processparameters(_ parameters: FSRSParameters) {
         let parameters = defaults.generatorParameters(props: parameters)
+        if parameters != self.parameters {
+            self.parameters = parameters
+        }
         if parameters.requestRetention.isFinite {
             do {
                 intervalModifier = try calculateIntervalModifier(requestRetention: parameters.requestRetention)
             } catch {
                 print(error.localizedDescription)
             }
-        }
-        if parameters != self.parameters {
-            self.parameters = parameters
         }
     }
     
@@ -89,9 +89,7 @@ public class FSRS: FSRSAlgorithm {
         now: Date,
         _ completion: ((_ log: IPreview) -> IPreview)? = nil
     ) -> IPreview {
-        let obj = params.enableShortTerm
-        ? BasicScheduler(card: card, reviewTime: now, algorithm: self)
-        : LongTermScheduler(card: card, reviewTime: now, algorithm: self)
+        let obj = scheduler(for: card, reviewTime: now)
         let log = obj.preview
         if let completion = completion {
             return completion(log)
@@ -163,14 +161,31 @@ public class FSRS: FSRSAlgorithm {
         if grade == .manual {
             throw FSRSError(.invalidRating, "Cannot review a manual rating")
         }
-        let obj = params.enableShortTerm
-        ? BasicScheduler(card: card, reviewTime: now, algorithm: self)
-        : LongTermScheduler(card: card, reviewTime: now, algorithm: self)
+        let obj = scheduler(for: card, reviewTime: now)
         let log = obj.review(grade)
         if let completion = completion {
             return completion(log)
         } else {
             return log
+        }
+    }
+
+    /// Picks the appropriate scheduler for the active algorithm version and
+    /// `enableShortTerm` setting:
+    /// - `enableShortTerm == false`: shared `LongTermScheduler` (works for both
+    ///   v5 and v6 because long-term mode collapses w17/w18 to 0).
+    /// - `v5 + enableShortTerm`: legacy `BasicScheduler` (hardcoded 1m/5m/10m).
+    /// - `v6 + enableShortTerm`: `BasicSchedulerV6` (configurable steps,
+    ///   delegates state transitions to `algorithm.nextState`).
+    private func scheduler(for card: Card, reviewTime: Date) -> AbstractScheduler {
+        if !params.enableShortTerm {
+            return LongTermScheduler(card: card, reviewTime: reviewTime, algorithm: self)
+        }
+        switch version {
+        case .v5:
+            return BasicScheduler(card: card, reviewTime: reviewTime, algorithm: self)
+        case .v6:
+            return BasicSchedulerV6(card: card, reviewTime: reviewTime, algorithm: self)
         }
     }
     
@@ -256,6 +271,7 @@ public class FSRS: FSRSAlgorithm {
         previousCard.difficulty = processedLog.difficulty ?? 0
         previousCard.elapsedDays = processedLog.lastElapsedDays
         previousCard.scheduledDays = processedLog.scheduledDays
+        previousCard.learningSteps = processedLog.learningSteps
         previousCard.reps = max(0, processdCard.reps - 1)
         previousCard.lapses = max(0, lastLapses)
         previousCard.state = state

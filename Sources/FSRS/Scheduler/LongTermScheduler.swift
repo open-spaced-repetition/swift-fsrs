@@ -94,7 +94,7 @@ class LongTermScheduler: AbstractScheduler {
     ) {
         nextAgain.difficulty = algorithm.nextDifficulty(d: difficulty, g: .again)
         let sAfterAll = algorithm.nextForgetStability(d: difficulty, s: stability, r: retrievability)
-        nextAgain.stability = FSRSHelper.clamp(stability, FSRSDefaults.S_MIN, sAfterAll)
+        nextAgain.stability = FSRSHelper.clamp(stability, algorithm.sMin, sAfterAll)
         
         nextHard.difficulty = algorithm.nextDifficulty(d: difficulty, g: .hard)
         nextHard.stability = algorithm.nextRecallStability(
