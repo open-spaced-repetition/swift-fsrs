@@ -5,29 +5,28 @@
 //  Created by nkq on 10/19/24.
 //
 
-
-import XCTest
+import Foundation
+import Testing
 @testable import FSRS
 
-class FSRSV5Tests: XCTestCase {
-    var f: FSRS!
-    var calendar: Calendar = {
+@Suite struct FSRSV5Tests {
+    let f: FSRS
+    let calendar: Calendar = {
         var res = Calendar.current
-        res.timeZone = .init(secondsFromGMT: 0)!
+        res.timeZone = TimeZone(secondsFromGMT: 0)!
         return res
     }()
-    let w: [Double] = [
+    static let w: [Double] = [
         0.40255, 1.18385, 3.173, 15.69105, 7.1949, 0.5345, 1.4604, 0.0046, 1.54575,
         0.1192, 1.01925, 1.9395, 0.11, 0.29605, 2.2698, 0.2315, 2.9898, 0.51655,
         0.6621,
     ]
 
-    override func setUp() {
-        super.setUp()
-        f = FSRS(parameters: .init(w: w))
+    init() {
+        f = FSRS(parameters: .init(w: Self.w))
     }
 
-    func testIvlHistory() {
+    @Test func ivlHistory() throws {
         var card = FSRSDefaults().createEmptyCard()
         var now = calendar.date(from: DateComponents(year: 2022, month: 12, day: 29, hour: 12, minute: 30))!
         var schedulingCards = f.repeat(card: card, now: now)
@@ -38,22 +37,18 @@ class FSRSV5Tests: XCTestCase {
         ]
 
         var ivlHistory: [Int] = []
-        
+
         for rating in ratings {
-            do {
-                var grades = Rating.allCases
-                grades.removeAll(where: { $0 == .manual })
-                for check in grades {
-                    let rollbackCard = try f.rollback(card: schedulingCards[check]!.card, log: schedulingCards[check]!.log)
-                    XCTAssertEqual(rollbackCard, card)
-                    let elapsedDays = card.lastReview != nil ? Date.dateDiff(now: now, pre: card.lastReview, unit: .days) : 0
-                    XCTAssertEqual(schedulingCards[check]!.log.elapsedDays, elapsedDays)
-                    let tempF = FSRS(parameters: .init(w: w))
-                    let next = try tempF.next(card: card, now: now, grade: check)
-                    XCTAssertEqual(schedulingCards[check], next)
-                }
-            } catch {
-                
+            var grades = Rating.allCases
+            grades.removeAll(where: { $0 == .manual })
+            for check in grades {
+                let rollbackCard = try f.rollback(card: schedulingCards[check]!.card, log: schedulingCards[check]!.log)
+                #expect(rollbackCard == card)
+                let elapsedDays = card.lastReview != nil ? Date.dateDiff(now: now, pre: card.lastReview, unit: .days) : 0
+                #expect(schedulingCards[check]!.log.elapsedDays == elapsedDays)
+                let tempF = FSRS(parameters: .init(w: Self.w))
+                let next = try tempF.next(card: card, now: now, grade: check)
+                #expect(schedulingCards[check] == next)
             }
 
             card = schedulingCards[rating]!.card
@@ -63,32 +58,30 @@ class FSRSV5Tests: XCTestCase {
             schedulingCards = f.repeat(card: card, now: now)
         }
 
-        XCTAssertEqual(ivlHistory, [0, 4, 14, 44, 125, 328, 0, 0, 7, 16, 34, 71, 142,])
+        #expect(ivlHistory == [0, 4, 14, 44, 125, 328, 0, 0, 7, 16, 34, 71, 142])
     }
 
-    func testMemoryState() {
+    @Test func memoryState() {
         var card = FSRSDefaults().createEmptyCard()
         var now = calendar.date(from: DateComponents(year: 2022, month: 12, day: 29, hour: 12, minute: 30))!
         var schedulingCards = f.repeat(card: card, now: now)
 
-        let ratings: [Rating] = [
-            .again, .good, .good, .good, .good, .good,
-        ]
+        let ratings: [Rating] = [.again, .good, .good, .good, .good, .good]
         let intervals: [Int] = [0, 0, 1, 3, 8, 21]
-        
+
         for (index, rating) in ratings.enumerated() {
             card = schedulingCards[rating]!.card
-            now.addTimeInterval(Double(intervals[index]) * 24 * 60 * 60) // Adding days as seconds
+            now.addTimeInterval(Double(intervals[index]) * 24 * 60 * 60)
             schedulingCards = f.repeat(card: card, now: now)
         }
 
-        let stability = schedulingCards[Rating.good]!.card.stability
-        let difficulty = schedulingCards[Rating.good]!.card.difficulty
-        XCTAssertEqual(stability, 48.4848, accuracy: 0.0001)
-        XCTAssertEqual(difficulty, 7.0866, accuracy: 0.0001)
+        let stability = schedulingCards[.good]!.card.stability
+        let difficulty = schedulingCards[.good]!.card.difficulty
+        expectClose(stability, 48.4848, 0.0001)
+        expectClose(difficulty, 7.0866, 0.0001)
     }
 
-    func testFirstRepeat() {
+    @Test func firstRepeat() {
         let card = FSRSDefaults().createEmptyCard()
         let now = calendar.date(from: DateComponents(year: 2022, month: 12, day: 29, hour: 12, minute: 30))!
         let schedulingCards = f.repeat(card: card, now: now)
@@ -112,98 +105,73 @@ class FSRSV5Tests: XCTestCase {
             states.append(firstCard.state)
         }
 
-        XCTAssertEqual(Set(stability), Set([0.40255, 1.18385, 3.173, 15.69105]))
-        XCTAssertEqual(Set(difficulty), Set([7.1949, 6.48830527, 5.28243442, 3.22450159]))
-        XCTAssertEqual(Set(reps), Set([1, 1, 1, 1]))
-        XCTAssertEqual(Set(lapses), Set([0, 0, 0, 0]))
-        XCTAssertEqual(Set(elapsedDays), Set([0, 0, 0, 0]))
-        XCTAssertEqual(Set(scheduledDays), Set([0, 0, 0, 16]))
-        XCTAssertEqual(Set(states), Set([.learning, .learning, .learning, .review]))
+        #expect(Set(stability) == Set([0.40255, 1.18385, 3.173, 15.69105]))
+        #expect(Set(difficulty) == Set([7.1949, 6.48830527, 5.28243442, 3.22450159]))
+        #expect(Set(reps) == Set([1, 1, 1, 1]))
+        #expect(Set(lapses) == Set([0, 0, 0, 0]))
+        #expect(Set(elapsedDays) == Set([0, 0, 0, 0]))
+        #expect(Set(scheduledDays) == Set([0, 0, 0, 16]))
+        #expect(Set(states) == Set([.learning, .learning, .learning, .review]))
     }
 }
 
-class RetrievabilityTests: XCTestCase {
-    var fsrs: FSRS!
-    let dateFormatter = DateFormatter()
+@Suite struct FSRSRetrievabilityTests {
+    let fsrs: FSRS
+    let dateFormatter: DateFormatter
 
-    override func setUp() {
-        super.setUp()
-        dateFormatter.dateFormat = "yyyy-MM-dd HH:mm:ss"  // "2024-03-21 15:30:45"
+    init() {
+        let df = DateFormatter()
+        df.dateFormat = "yyyy-MM-dd HH:mm:ss"
+        dateFormatter = df
         fsrs = FSRS(parameters: .init())
     }
 
-    func testReturnZeroForNewCards() {
+    @Test func returnZeroForNewCards() {
         let card = FSRSDefaults().createEmptyCard()
         let now = Date()
-        let expected = "0.00%"
-        XCTAssertEqual(fsrs.getRetrievability(card: card, now: now).string, expected)
+        #expect(fsrs.getRetrievability(card: card, now: now).string == "0.00%")
     }
 
-    func testRetrievabilityPercentageForReviewCards() {
+    @Test func retrievabilityPercentageForReviewCards() {
         let card = FSRSDefaults().createEmptyCard(now: dateFormatter.date(from: "2023-12-01 04:00:00")!)
         let sc = fsrs.repeat(card: card, now: dateFormatter.date(from: "2023-12-01 04:05:00")!)
         let expectedResults = ["100.00%", "100.00%", "100.00%", "89.83%"]
         let expectedNumbers = [1.0, 1.0, 1.0, 0.89832125]
 
-        for grade in Rating.allCases {
-            if grade != .manual {
-                XCTAssertEqual(fsrs.getRetrievability(card: sc[grade]!.card, now: sc[grade]!.card.due).string, expectedResults[grade.rawValue - 1])
-                XCTAssertEqual(fsrs.getRetrievability(card: sc[grade]!.card, now: sc[grade]!.card.due).number, expectedNumbers[grade.rawValue - 1])
-            }
+        for grade in Rating.allCases where grade != .manual {
+            #expect(fsrs.getRetrievability(card: sc[grade]!.card, now: sc[grade]!.card.due).string == expectedResults[grade.rawValue - 1])
+            #expect(fsrs.getRetrievability(card: sc[grade]!.card, now: sc[grade]!.card.due).number == expectedNumbers[grade.rawValue - 1])
         }
     }
 
-//    func testFakeCurrentSystemTime() {
-//        let card = FSRSDefaults().createEmptyCard(now: dateFormatter.date(from: "2023-12-01 04:00:00")!)
-//        let sc = fsrs.repeat(card: card, now: dateFormatter.date(from: "2023-12-01 04:05:00")!)
-//        let expectedResults = ["100.00%", "100.00%", "100.00%", "90.26%"]
-//        let expectedNumbers = [1.0, 1.0, 1.0, 0.9026208]
-//
-//        var strings = [String]()
-//        var numbers = [Double]()
-//        for grade in Rating.allCases {
-//            if grade != .manual {
-//                strings.append(fsrs.getRetrievability(card: sc[grade]!.card).string)
-//                numbers.append(fsrs.getRetrievability(card: sc[grade]!.card).number)
-//            }
-//        }
-//        XCTAssertEqual(strings, expectedResults)
-//        XCTAssertEqual(numbers, expectedNumbers)
-//    }
-
-    func testLoopAgain() {
+    @Test func loopAgain() throws {
         var card = FSRSDefaults().createEmptyCard()
         var now = Date()
-        
-        do {
-            for i in 0..<5 {
-                card = try fsrs.next(card: card, now: now, grade: .again).card
-                now = card.due
-                
-                let retrievability = fsrs.getRetrievability(card: card, now: now).number
-                print("Loop \(i + 1): stability: \(card.stability) retrievability: \(retrievability) ")
-                XCTAssertFalse(retrievability.isNaN)
-            }
-        } catch {
-            
+
+        for _ in 0..<5 {
+            card = try fsrs.next(card: card, now: now, grade: .again).card
+            now = card.due
+
+            let retrievability = fsrs.getRetrievability(card: card, now: now).number
+            #expect(!retrievability.isNaN)
         }
     }
 }
 
-class FSRSNextMethodTests: XCTestCase {
-    var fsrs: FSRS!
+@Suite struct FSRSNextMethodTests {
+    let fsrs: FSRS
 
-    override func setUp() {
-        super.setUp()
+    init() {
         fsrs = FSRS(parameters: .init())
     }
 
-    func testInvalidGrade() {
+    @Test func invalidGrade() {
         let card = FSRSDefaults().createEmptyCard()
         let now = Date()
         let invalidGrade = Rating.manual
-        XCTAssertThrowsError(try fsrs.next(card: card, now: now, grade: invalidGrade)) { error in
-            XCTAssertEqual((error as? FSRSError)?.errorReason, .invalidRating)
+        let err = #expect(throws: FSRSError.self) {
+            _ = try fsrs.next(card: card, now: now, grade: invalidGrade)
         }
+        #expect(err?.errorReason == .invalidRating)
     }
 }

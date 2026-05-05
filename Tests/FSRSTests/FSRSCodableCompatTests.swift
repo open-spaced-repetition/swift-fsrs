@@ -6,10 +6,11 @@
 //  decodeIfPresent strategy in Card / ReviewLog / FSRSParameters.
 //
 
-import XCTest
+import Foundation
+import Testing
 @testable import FSRS
 
-final class FSRSCodableCompatTests: XCTestCase {
+@Suite struct FSRSCodableCompatTests {
 
     private func decoder() -> JSONDecoder {
         let d = JSONDecoder()
@@ -19,7 +20,7 @@ final class FSRSCodableCompatTests: XCTestCase {
 
     // MARK: - Card
 
-    func testLegacyCardJSONDecodes() throws {
+    @Test func legacyCardJSONDecodes() throws {
         let json = """
         {
           "due": "2025-01-01T00:00:00Z",
@@ -34,13 +35,13 @@ final class FSRSCodableCompatTests: XCTestCase {
         """.data(using: .utf8)!
 
         let card = try decoder().decode(Card.self, from: json)
-        XCTAssertEqual(card.stability, 1.5)
-        XCTAssertEqual(card.difficulty, 4.2)
-        XCTAssertEqual(card.learningSteps, 0, "Missing learningSteps must default to 0")
-        XCTAssertEqual(card.state, .new)
+        #expect(card.stability == 1.5)
+        #expect(card.difficulty == 4.2)
+        #expect(card.learningSteps == 0, "Missing learningSteps must default to 0")
+        #expect(card.state == .new)
     }
 
-    func testCurrentCardJSONRoundTrips() throws {
+    @Test func currentCardJSONRoundTrips() throws {
         let card = Card(
             due: Date(timeIntervalSince1970: 1_700_000_000),
             stability: 2.5,
@@ -57,12 +58,12 @@ final class FSRSCodableCompatTests: XCTestCase {
         encoder.dateEncodingStrategy = .iso8601
         let data = try encoder.encode(card)
         let decoded = try decoder().decode(Card.self, from: data)
-        XCTAssertEqual(card, decoded)
+        #expect(card == decoded)
     }
 
     // MARK: - ReviewLog
 
-    func testLegacyReviewLogJSONDecodes() throws {
+    @Test func legacyReviewLogJSONDecodes() throws {
         let json = """
         {
           "rating": 3,
@@ -74,15 +75,13 @@ final class FSRSCodableCompatTests: XCTestCase {
         """.data(using: .utf8)!
 
         let log = try decoder().decode(ReviewLog.self, from: json)
-        XCTAssertEqual(log.rating, .good)
-        XCTAssertEqual(log.learningSteps, 0)
+        #expect(log.rating == .good)
+        #expect(log.learningSteps == 0)
     }
 
     // MARK: - FSRSParameters
 
-    func testLegacyParametersJSONDecodes() throws {
-        // Caller stored params from before v6 — no learningSteps/relearningSteps
-        // in the JSON. Should decode using FSRSDefaults values for those.
+    @Test func legacyParametersJSONDecodes() throws {
         let json = """
         {
           "requestRetention": 0.9,
@@ -94,12 +93,11 @@ final class FSRSCodableCompatTests: XCTestCase {
         """.data(using: .utf8)!
 
         let params = try decoder().decode(FSRSParameters.self, from: json)
-        XCTAssertEqual(params.w.count, 19, "Legacy v5 weights preserved")
-        XCTAssertEqual(params.learningSteps, FSRSDefaults.defaultLearningSteps)
-        XCTAssertEqual(params.relearningSteps, FSRSDefaults.defaultRelearningSteps)
+        #expect(params.w.count == 19, "Legacy v5 weights preserved")
+        #expect(params.learningSteps == FSRSDefaults.defaultLearningSteps)
+        #expect(params.relearningSteps == FSRSDefaults.defaultRelearningSteps)
 
-        // And v5 path still resolves to v5 algorithm.
         let f = FSRS(parameters: params)
-        XCTAssertEqual(f.version, .v5)
+        #expect(f.version == .v5)
     }
 }

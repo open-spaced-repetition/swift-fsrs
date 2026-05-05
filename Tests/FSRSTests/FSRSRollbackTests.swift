@@ -5,16 +5,15 @@
 //  Created by nkq on 10/19/24.
 //
 
-
-import XCTest
+import Foundation
+import Testing
 @testable import FSRS
 
-class FSRSRollbackTests: XCTestCase {
-    
-    var f: FSRS!
+@Suite struct FSRSRollbackTests {
 
-    override func setUp() {
-        super.setUp()
+    let f: FSRS
+
+    init() {
         f = FSRS(parameters: .init(
             w: [
                 1.14, 1.01, 5.44, 14.67, 5.3024, 1.5662, 1.2503, 0.0028, 1.5489, 0.1763,
@@ -24,39 +23,31 @@ class FSRSRollbackTests: XCTestCase {
         ))
     }
 
-    func testFirstRollback() {
+    @Test func firstRollback() throws {
         let card = FSRSDefaults().createEmptyCard()
         let now = DateComponents(calendar: .current, year: 2022, month: 12, day: 29, hour: 12, minute: 30).date!
         let schedulingCards = f.repeat(card: card, now: now)
-        
-        let grades: [Rating] = [Rating.again, Rating.hard, Rating.good, Rating.easy]
+
+        let grades: [Rating] = [.again, .hard, .good, .easy]
         for rating in grades {
-            do {
-                let rollbackCard = try f.rollback(card: schedulingCards[rating]!.card, log: schedulingCards[rating]!.log)
-                XCTAssertEqual(rollbackCard, card)
-            } catch {
-                
-            }
+            let rollbackCard = try f.rollback(card: schedulingCards[rating]!.card, log: schedulingCards[rating]!.log)
+            #expect(rollbackCard == card)
         }
     }
 
-    func testRollback2() {
+    @Test func rollback2() throws {
         var card = FSRSDefaults().createEmptyCard()
         var now = DateComponents(calendar: .current, year: 2022, month: 12, day: 29, hour: 12, minute: 30).date!
         var schedulingCards = f.repeat(card: card, now: now)
 
-        card = schedulingCards[Rating.easy]!.card
+        card = schedulingCards[.easy]!.card
         now = card.due
         schedulingCards = f.repeat(card: card, now: now)
 
-        let grades: [Rating] = [Rating.again, Rating.hard, Rating.good, Rating.easy]
+        let grades: [Rating] = [.again, .hard, .good, .easy]
         for rating in grades {
-            do {
-                let rollbackCard = try f.rollback(card: schedulingCards[rating]!.card, log: schedulingCards[rating]!.log)
-                XCTAssertEqual(rollbackCard, card)
-            } catch {
-                
-            }
+            let rollbackCard = try f.rollback(card: schedulingCards[rating]!.card, log: schedulingCards[rating]!.log)
+            #expect(rollbackCard == card)
         }
     }
 }

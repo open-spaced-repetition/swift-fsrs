@@ -7,38 +7,36 @@
 //  21 — that would silently change short-term stability behavior.
 //
 
-import XCTest
+import Foundation
+import Testing
 @testable import FSRS
 
-final class FSRSGeneratorParametersV6Tests: XCTestCase {
+@Suite struct FSRSGeneratorParametersV6Tests {
 
-    func testNoArgsStaysOnV5() {
+    @Test func noArgsStaysOnV5() {
         let defaults = FSRSDefaults()
         let p = defaults.generatorParameters()
-        XCTAssertEqual(p.w.count, 19)
-        XCTAssertEqual(FSRSAlgorithmVersion.detect(p.w), .v5)
+        #expect(p.w.count == 19)
+        #expect(FSRSAlgorithmVersion.detect(p.w) == .v5)
     }
 
-    func testV6DefaultPassesThrough() {
+    @Test func v6DefaultPassesThrough() {
         let defaults = FSRSDefaults()
         let p = defaults.generatorParameters(props: .init(w: FSRSDefaults.defaultWv6))
-        XCTAssertEqual(p.w.count, 21)
-        XCTAssertEqual(FSRSAlgorithmVersion.detect(p.w), .v6)
-        // Last weight is the decay default.
-        XCTAssertEqual(p.w[20], FSRSDefaults.FSRS6_DEFAULT_DECAY, accuracy: 1e-9)
+        #expect(p.w.count == 21)
+        #expect(FSRSAlgorithmVersion.detect(p.w) == .v6)
+        expectClose(p.w[20], FSRSDefaults.FSRS6_DEFAULT_DECAY, 1e-9)
     }
 
-    func testLegacy17PathUnchanged() {
-        // 17-length input still migrates to 19 (v5), as before.
+    @Test func legacy17PathUnchanged() {
         let defaults = FSRSDefaults()
         let raw = Array(repeating: 0.5, count: 17)
         let p = defaults.generatorParameters(props: .init(w: raw))
-        XCTAssertEqual(p.w.count, 19)
-        XCTAssertEqual(FSRSAlgorithmVersion.detect(p.w), .v5)
+        #expect(p.w.count == 19)
+        #expect(FSRSAlgorithmVersion.detect(p.w) == .v5)
     }
 
-    func test19LengthDoesNotAutoMigrateTo21() {
-        // Legacy v5 weights stay 19 — no silent v6 migration.
+    @Test func length19DoesNotAutoMigrateTo21() {
         let defaults = FSRSDefaults()
         let v5w: [Double] = [
             0.40255, 1.18385, 3.173, 15.69105, 7.1949, 0.5345, 1.4604, 0.0046, 1.54575,
@@ -46,41 +44,39 @@ final class FSRSGeneratorParametersV6Tests: XCTestCase {
             0.6621,
         ]
         let p = defaults.generatorParameters(props: .init(w: v5w))
-        XCTAssertEqual(p.w.count, 19)
-        XCTAssertEqual(p.w, v5w)
+        #expect(p.w.count == 19)
+        #expect(p.w == v5w)
     }
 
-    func testV6ClampForcesValidRanges() {
-        // Out-of-range w[20] should clamp into [0.1, 0.8].
+    @Test func v6ClampForcesValidRanges() {
         let defaults = FSRSDefaults()
         var w = FSRSDefaults.defaultWv6
-        w[20] = 5.0  // way above 0.8
+        w[20] = 5.0
         let p = defaults.generatorParameters(props: .init(w: w))
-        XCTAssertEqual(p.w[20], 0.8, accuracy: 1e-9)
+        expectClose(p.w[20], 0.8, 1e-9)
 
-        w[20] = -1.0  // below 0.1
+        w[20] = -1.0
         let p2 = defaults.generatorParameters(props: .init(w: w))
-        XCTAssertEqual(p2.w[20], 0.1, accuracy: 1e-9)
+        expectClose(p2.w[20], 0.1, 1e-9)
     }
 
-    func testSMinIsVersionDispatched() {
+    @Test func sMinIsVersionDispatched() {
         let v5 = FSRS(parameters: .init())
-        XCTAssertEqual(v5.sMin, FSRSDefaults.S_MIN)
+        #expect(v5.sMin == FSRSDefaults.S_MIN)
 
         let v6 = FSRS(parameters: .init(w: FSRSDefaults.defaultWv6))
-        XCTAssertEqual(v6.sMin, FSRSDefaults.S_MIN_V6)
+        #expect(v6.sMin == FSRSDefaults.S_MIN_V6)
     }
 
-    func testFactorIsDerivedFromDecayInV6() {
+    @Test func factorIsDerivedFromDecayInV6() {
         let v5 = FSRS(parameters: .init())
-        XCTAssertEqual(v5.factor, 19.0 / 81.0, accuracy: 1e-12)
-        XCTAssertEqual(v5.decay, -0.5)
+        expectClose(v5.factor, 19.0 / 81.0, 1e-12)
+        #expect(v5.decay == -0.5)
 
-        // v6 with w[20] = 0.5 should produce v5's exact factor (mathematical fixed point).
         var w = FSRSDefaults.defaultWv6
         w[20] = 0.5
         let v6Equivalent = FSRS(parameters: .init(w: w))
-        XCTAssertEqual(v6Equivalent.factor, 19.0 / 81.0, accuracy: 1e-7)
-        XCTAssertEqual(v6Equivalent.decay, -0.5)
+        expectClose(v6Equivalent.factor, 19.0 / 81.0, 1e-7)
+        #expect(v6Equivalent.decay == -0.5)
     }
 }
