@@ -79,6 +79,7 @@ class AbstractScheduler: IScheduler {
               elapsedDays: current.elapsedDays,
               lastElapsedDays: last.elapsedDays,
               scheduledDays: current.scheduledDays,
+              learningSteps: current.learningSteps,
               review: reviewTime
         )
     }
