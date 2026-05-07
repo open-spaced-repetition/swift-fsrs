@@ -7,7 +7,7 @@
 import Foundation
 
 class BasicScheduler: AbstractScheduler {
-    override func newState(grade: Rating) -> RecordLogItem {
+    override func newState(grade: Rating) throws -> RecordLogItem {
         if let item = next[grade] { return item }
         var next = current.newCard
         next.difficulty = algorithm.initDifficulty(grade)
@@ -38,7 +38,7 @@ class BasicScheduler: AbstractScheduler {
         return .init(card: next, log: buildLog(rating: grade))
     }
 
-    override func learningState(grade: Rating) -> RecordLogItem {
+    override func learningState(grade: Rating) throws -> RecordLogItem {
         if let item = next[grade] { return item }
         var next = current.newCard
         let interval = current.elapsedDays
@@ -82,7 +82,7 @@ class BasicScheduler: AbstractScheduler {
         return .init(card: next, log: buildLog(rating: grade))
     }
 
-    override func reviewState(grade: Rating) -> RecordLogItem {
+    override func reviewState(grade: Rating) throws -> RecordLogItem {
         if let item = next[grade] { return item }
         let interval = current.elapsedDays
         let retrievability = algorithm.forgettingCurve(

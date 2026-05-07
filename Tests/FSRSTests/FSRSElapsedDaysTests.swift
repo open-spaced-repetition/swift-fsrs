@@ -23,10 +23,10 @@ class FSRSElapsedDaysTests: XCTestCase {
         card = FSRSDefaults().createEmptyCard(now: createDue)
     }
 
-    func testFirstRepeatGood() {
+    func testFirstRepeatGood() throws {
         var components = DateComponents(year: 2023, month: 11, day: 05, hour: 08, minute: 27, second: 02)
         let firstDue = calendar.date(from: components)! // UTC 2023-11-05 08:27:02.605
-        var sc = f.repeat(card: card, now: firstDue)
+        var sc = try f.repeat(card: card, now: firstDue)
         
         currentLog = sc[.good]?.log
         XCTAssertEqual(currentLog?.elapsedDays, 0)
@@ -37,7 +37,7 @@ class FSRSElapsedDaysTests: XCTestCase {
         let secondDue = calendar.date(from: components)! // UTC 2023-11-08 15:02:09.791
         XCTAssertNotNil(card)
         
-        sc = f.repeat(card: card, now: secondDue)
+        sc = try f.repeat(card: card, now: secondDue)
         currentLog = sc[.again]?.log
         
         var expectedElapsedDays: Double = Date.dateDiff(now: secondDue, pre: card.lastReview, unit: .days)
@@ -50,7 +50,7 @@ class FSRSElapsedDaysTests: XCTestCase {
         let thirdDue = calendar.date(from: components)! // UTC 2023-11-08 15:02:30.799
         XCTAssertNotNil(card)
 
-        sc = f.repeat(card: card, now: thirdDue)
+        sc = try f.repeat(card: card, now: thirdDue)
         currentLog = sc[.again]?.log
         
         expectedElapsedDays = Date.dateDiff(now: thirdDue, pre: card.lastReview, unit: .days)
@@ -63,7 +63,7 @@ class FSRSElapsedDaysTests: XCTestCase {
         let fourthDue = calendar.date(from: components)! // UTC 2023-11-08 15:04:08.739
         XCTAssertNotNil(card)
 
-        sc = f.repeat(card: card, now: fourthDue)
+        sc = try f.repeat(card: card, now: fourthDue)
         currentLog = sc[.good]?.log
         
         expectedElapsedDays = Date.dateDiff(now: fourthDue, pre: card.lastReview, unit: .days)

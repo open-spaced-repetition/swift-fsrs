@@ -66,47 +66,44 @@ class BasicSchedulerV6: AbstractScheduler {
     /// Compute the next memory state via `algorithm.nextState`. v6's
     /// `nextState` handles the new-card init, manual-rating short-circuit,
     /// short-term path, again-clamp, and recall path internally — keeping
-    /// the scheduler thin.
-    private func nextDs(t: Double, grade: Rating) -> Card {
+    /// the scheduler thin. Propagates `FSRSError(.invalidDeltaT)` /
+    /// `.invalidParam` so callers see invalid clock skew or corrupted card
+    /// state instead of silently scheduling against stale numbers.
+    private func nextDs(t: Double, grade: Rating) throws -> Card {
         var card = current.newCard
-        do {
-            let memoryState = FSRSState(stability: current.stability, difficulty: current.difficulty)
-            let nextState = try algorithm.nextState(memoryState: memoryState, t: t, g: grade)
-            card.difficulty = nextState.difficulty
-            card.stability = nextState.stability
-        } catch {
-            // Defensive: shouldn't trigger for cards routed through this scheduler.
-            print(error.localizedDescription)
-        }
+        let memoryState = FSRSState(stability: current.stability, difficulty: current.difficulty)
+        let nextState = try algorithm.nextState(memoryState: memoryState, t: t, g: grade)
+        card.difficulty = nextState.difficulty
+        card.stability = nextState.stability
         return card
     }
 
-    override func newState(grade: Rating) -> RecordLogItem {
+    override func newState(grade: Rating) throws -> RecordLogItem {
         if let item = next[grade] { return item }
-        var card = nextDs(t: current.elapsedDays, grade: grade)
+        var card = try nextDs(t: current.elapsedDays, grade: grade)
         applyLearningSteps(nextCard: &card, grade: grade, toState: .learning)
         let item = RecordLogItem(card: card, log: buildLog(rating: grade))
         next[grade] = item
         return item
     }
 
-    override func learningState(grade: Rating) -> RecordLogItem {
+    override func learningState(grade: Rating) throws -> RecordLogItem {
         if let item = next[grade] { return item }
-        var card = nextDs(t: current.elapsedDays, grade: grade)
+        var card = try nextDs(t: current.elapsedDays, grade: grade)
         applyLearningSteps(nextCard: &card, grade: grade, toState: last.state)
         let item = RecordLogItem(card: card, log: buildLog(rating: grade))
         next[grade] = item
         return item
     }
 
-    override func reviewState(grade: Rating) -> RecordLogItem {
+    override func reviewState(grade: Rating) throws -> RecordLogItem {
         if let item = next[grade] { return item }
         let interval = current.elapsedDays
 
-        var nextAgain = nextDs(t: interval, grade: .again)
-        var nextHard = nextDs(t: interval, grade: .hard)
-        var nextGood = nextDs(t: interval, grade: .good)
-        var nextEasy = nextDs(t: interval, grade: .easy)
+        var nextAgain = try nextDs(t: interval, grade: .again)
+        var nextHard = try nextDs(t: interval, grade: .hard)
+        var nextGood = try nextDs(t: interval, grade: .good)
+        var nextEasy = try nextDs(t: interval, grade: .easy)
 
         nextIntervalReview(&nextHard, &nextGood, &nextEasy, interval: interval)
         nextStateReview(&nextHard, &nextGood, &nextEasy)

@@ -88,9 +88,9 @@ public class FSRS: FSRSAlgorithm {
         card: Card,
         now: Date,
         _ completion: ((_ log: IPreview) -> IPreview)? = nil
-    ) -> IPreview {
+    ) throws -> IPreview {
         let obj = scheduler(for: card, reviewTime: now)
-        let log = obj.preview
+        let log = try obj.preview
         if let completion = completion {
             return completion(log)
         } else {
@@ -162,7 +162,7 @@ public class FSRS: FSRSAlgorithm {
             throw FSRSError(.invalidRating, "Cannot review a manual rating")
         }
         let obj = scheduler(for: card, reviewTime: now)
-        let log = obj.review(grade)
+        let log = try obj.review(grade)
         if let completion = completion {
             return completion(log)
         } else {

@@ -21,14 +21,14 @@ class FSRSBasicSchedulerTests: XCTestCase {
         now = Date()
     }
 
-    func testStateNewExist() {
+    func testStateNewExist() throws {
         let card = FSRSDefaults().createEmptyCard(now: now)
         let basicScheduler = BasicScheduler(card: card, reviewTime: now, algorithm: algorithm)
-        let preview = basicScheduler.preview
-        let again = basicScheduler.review(.again)
-        let hard = basicScheduler.review(.hard)
-        let good = basicScheduler.review(.good)
-        let easy = basicScheduler.review(.easy)
+        let preview = try basicScheduler.preview
+        let again = try basicScheduler.review(.again)
+        let hard = try basicScheduler.review(.hard)
+        let good = try basicScheduler.review(.good)
+        let easy = try basicScheduler.review(.easy)
 
         let expectedPreview: [Rating: Card] = [
             .again: again.card,
@@ -44,21 +44,21 @@ class FSRSBasicSchedulerTests: XCTestCase {
         XCTAssertEqual(preview.recordLog[.hard]?.card, expectedPreview[.hard])
 
         for item in preview.recordLog {
-            let expectedCard = basicScheduler.review(item.value.log.rating)
+            let expectedCard = try basicScheduler.review(item.value.log.rating)
             XCTAssertEqual(item.value, expectedCard)
         }
     }
 
-    func testStateLearningExist() {
+    func testStateLearningExist() throws {
         let cardByNew = FSRSDefaults().createEmptyCard(now: now)
-        let card = BasicScheduler(card: cardByNew, reviewTime: now, algorithm: algorithm).review(.again).card
+        let card = try BasicScheduler(card: cardByNew, reviewTime: now, algorithm: algorithm).review(.again).card
         let basicScheduler = BasicScheduler(card: card, reviewTime: now, algorithm: algorithm)
 
-        let preview = basicScheduler.preview
-        let again = basicScheduler.review(.again)
-        let hard = basicScheduler.review(.hard)
-        let good = basicScheduler.review(.good)
-        let easy = basicScheduler.review(.easy)
+        let preview = try basicScheduler.preview
+        let again = try basicScheduler.review(.again)
+        let hard = try basicScheduler.review(.hard)
+        let good = try basicScheduler.review(.good)
+        let easy = try basicScheduler.review(.easy)
 
         let expectedPreview: [Rating: Card] = [
             .again: again.card,
@@ -74,21 +74,21 @@ class FSRSBasicSchedulerTests: XCTestCase {
         XCTAssertEqual(preview.recordLog[.hard]?.card, expectedPreview[.hard])
 
         for item in preview.recordLog {
-            let expectedCard = basicScheduler.review(item.value.log.rating)
+            let expectedCard = try basicScheduler.review(item.value.log.rating)
             XCTAssertEqual(item.value, expectedCard)
         }
     }
 
-    func testStateReviewExist() {
+    func testStateReviewExist() throws {
         let cardByNew = FSRSDefaults().createEmptyCard(now: now)
-        let card = BasicScheduler(card: cardByNew, reviewTime: now, algorithm: algorithm).review(.easy).card
+        let card = try BasicScheduler(card: cardByNew, reviewTime: now, algorithm: algorithm).review(.easy).card
         let basicScheduler = BasicScheduler(card: card, reviewTime: now, algorithm: algorithm)
 
-        let preview = basicScheduler.preview
-        let again = basicScheduler.review(.again)
-        let hard = basicScheduler.review(.hard)
-        let good = basicScheduler.review(.good)
-        let easy = basicScheduler.review(.easy)
+        let preview = try basicScheduler.preview
+        let again = try basicScheduler.review(.again)
+        let hard = try basicScheduler.review(.hard)
+        let good = try basicScheduler.review(.good)
+        let easy = try basicScheduler.review(.easy)
 
         let expectedPreview: [Rating: Card] = [
             .again: again.card,
@@ -104,7 +104,7 @@ class FSRSBasicSchedulerTests: XCTestCase {
         XCTAssertEqual(preview.recordLog[.hard]?.card, expectedPreview[.hard])
 
         for item in preview.recordLog {
-            let expectedCard = basicScheduler.review(item.value.log.rating)
+            let expectedCard = try basicScheduler.review(item.value.log.rating)
             XCTAssertEqual(item.value, expectedCard)
         }
     }
