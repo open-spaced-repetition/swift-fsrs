@@ -137,7 +137,6 @@ public class FSRSDefaults {
 
     func generatorParameters(props: FSRSParameters? = nil) -> FSRSParameters {
         var w = defaultW
-        let inputCount = props?.w.count ?? -1
 
         if let p = props {
             switch p.w.count {
@@ -184,7 +183,6 @@ public class FSRSDefaults {
         // 17→19 (legacy v4→v5) was already handled above. Note: we deliberately do
         // NOT auto-migrate 19→21. Callers who want v6 must pass a 21-length w
         // (e.g. FSRSDefaults.defaultWv6) — silent migration would change behavior.
-        _ = inputCount
 
         return FSRSParameters(
             requestRetention: props?.requestRetention ?? defaultRequestRetention,
