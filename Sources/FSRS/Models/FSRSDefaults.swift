@@ -84,17 +84,26 @@ public class FSRSDefaults {
 
     /// Compute the dynamic `w17_w18_ceiling` from the relearning step count.
     /// Mirrors ts-fsrs's clipParameters derivation exactly.
+    ///
+    /// `parameters` is the *raw* w vector — generatorParameters calls this
+    /// before clamping. Pre-clamp the values feeding into `log(...)` so an
+    /// out-of-range `w[11]` / `w[13]` / `w[14]` can't NaN-poison the ceiling
+    /// (and through it the rest of the clamp table). Math is unchanged for
+    /// any in-range input.
     static func computeW17W18Ceiling(parameters: [Double], numRelearningSteps: Int) -> Double {
         guard max(0, numRelearningSteps) > 1 else { return W17_W18_CEILING }
+        let w11 = FSRSHelper.clamp(parameters[11], 0.001, 5.0)
+        let w13 = FSRSHelper.clamp(parameters[13], 0.001, 0.9)
+        let w14 = FSRSHelper.clamp(parameters[14], 0.0, 4.0)
         // PLS = w11 * D ^ -w12 * [(S + 1) ^ w13 - 1] * e ^ (w14 * (1 - R))
         // Given D = 1, R = 0.7, S = 1, this collapses to:
         //   PLS = w11 * (2 ^ w13 - 1) * e ^ (w14 * 0.3)
         // We require PLS * e ^ (n * w17 * w18) ≤ S = 1, so:
         //   n * w17 * w18 ≤ -[ln(w11) + ln(2 ^ w13 - 1) + w14 * 0.3]
         let value = -(
-            log(parameters[11]) +
-            log(pow(2.0, parameters[13]) - 1.0) +
-            parameters[14] * 0.3
+            log(w11) +
+            log(pow(2.0, w13) - 1.0) +
+            w14 * 0.3
         ) / Double(numRelearningSteps)
         return FSRSHelper.clamp(value.toFixedNumber(8), 0.01, 2.0)
     }
