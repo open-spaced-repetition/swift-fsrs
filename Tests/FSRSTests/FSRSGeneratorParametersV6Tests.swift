@@ -71,6 +71,23 @@ final class FSRSGeneratorParametersV6Tests: XCTestCase {
         XCTAssertEqual(v6.sMin, FSRSDefaults.S_MIN_V6)
     }
 
+    func testMalformedLearningStepThrowsOnReview() {
+        // Malformed step strings used to be silently swallowed by `try?` in
+        // basicLearningStepsStrategy, causing the v6 scheduler to graduate
+        // cards immediately. Now they propagate `FSRSError(.invalidParam)`
+        // through the throwing review chain.
+        let p = FSRSParameters(
+            w: FSRSDefaults.defaultWv6,
+            learningSteps: ["1m", "bogus"]
+        )
+        let f = FSRS(parameters: p)
+        let card = FSRSDefaults().createEmptyCard()
+        let now = Date()
+        XCTAssertThrowsError(try f.next(card: card, now: now, grade: .good)) { error in
+            XCTAssertTrue(error is FSRSError, "Expected FSRSError, got \(error)")
+        }
+    }
+
     func testFactorIsDerivedFromDecayInV6() {
         let v5 = FSRS(parameters: .init())
         XCTAssertEqual(v5.factor, 19.0 / 81.0, accuracy: 1e-12)

@@ -14,8 +14,8 @@ class BasicSchedulerV6: AbstractScheduler {
         grade: Rating,
         fromState state: CardState,
         curStep: Int
-    ) -> (scheduledMinutes: Int, nextStep: Int) {
-        let strategy = basicLearningStepsStrategy(
+    ) throws -> (scheduledMinutes: Int, nextStep: Int) {
+        let strategy = try basicLearningStepsStrategy(
             params: algorithm.parameters,
             state: state,
             curStep: curStep
@@ -31,8 +31,8 @@ class BasicSchedulerV6: AbstractScheduler {
         nextCard: inout Card,
         grade: Rating,
         toState: CardState
-    ) {
-        let info = getStepInfo(
+    ) throws {
+        let info = try getStepInfo(
             grade: grade,
             fromState: current.state,
             curStep: current.learningSteps
@@ -81,7 +81,7 @@ class BasicSchedulerV6: AbstractScheduler {
     override func newState(grade: Rating) throws -> RecordLogItem {
         if let item = next[grade] { return item }
         var card = try nextDs(t: current.elapsedDays, grade: grade)
-        applyLearningSteps(nextCard: &card, grade: grade, toState: .learning)
+        try applyLearningSteps(nextCard: &card, grade: grade, toState: .learning)
         let item = RecordLogItem(card: card, log: buildLog(rating: grade))
         next[grade] = item
         return item
@@ -90,7 +90,7 @@ class BasicSchedulerV6: AbstractScheduler {
     override func learningState(grade: Rating) throws -> RecordLogItem {
         if let item = next[grade] { return item }
         var card = try nextDs(t: current.elapsedDays, grade: grade)
-        applyLearningSteps(nextCard: &card, grade: grade, toState: last.state)
+        try applyLearningSteps(nextCard: &card, grade: grade, toState: last.state)
         let item = RecordLogItem(card: card, log: buildLog(rating: grade))
         next[grade] = item
         return item
@@ -107,7 +107,7 @@ class BasicSchedulerV6: AbstractScheduler {
 
         nextIntervalReview(&nextHard, &nextGood, &nextEasy, interval: interval)
         nextStateReview(&nextHard, &nextGood, &nextEasy)
-        applyLearningSteps(nextCard: &nextAgain, grade: .again, toState: .relearning)
+        try applyLearningSteps(nextCard: &nextAgain, grade: .again, toState: .relearning)
         nextAgain.lapses += 1
 
         next[.again] = RecordLogItem(card: nextAgain, log: buildLog(rating: .again))
