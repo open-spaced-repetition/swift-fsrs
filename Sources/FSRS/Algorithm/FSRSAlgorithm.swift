@@ -294,8 +294,8 @@ public class FSRSAlgorithm {
       * @returns The next state of memory with updated difficulty and stability.
       */
     func nextState(memoryState: FSRSState?, t: Double, g: Rating) throws -> FSRSState {
-        var difficulty = memoryState?.difficulty ?? 0.0
-        var stability = memoryState?.stability ?? 0.0
+        let difficulty = memoryState?.difficulty ?? 0.0
+        let stability = memoryState?.stability ?? 0.0
         if t < 0 {
             throw FSRSError.init(.invalidDeltaT)
         }
