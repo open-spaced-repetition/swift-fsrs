@@ -30,10 +30,6 @@ public class FSRSDefaults {
     static let S_MIN_V6 = 0.001
     static let INIT_S_MAX = 100.0
 
-    /// Decay value that, when used as `w[20]`, makes v6's learnable decay match v5's
-    /// constant `decay = -0.5` (i.e. `factor = 19/81`). Used when migrating 17- or
-    /// 19-length parameters into v6 land.
-    static let FSRS5_DEFAULT_DECAY = 0.5
     /// Default decay for fresh v6 models (canonical value from ts-fsrs).
     static let FSRS6_DEFAULT_DECAY = 0.1542
 
