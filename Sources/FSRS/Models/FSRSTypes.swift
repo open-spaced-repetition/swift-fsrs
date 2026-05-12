@@ -24,8 +24,8 @@ public struct IPreview {
 }
 
 public protocol IScheduler {
-    var preview: IPreview { get }
-    func review(_ g: Rating) -> RecordLogItem
+    var preview: IPreview { get throws }
+    func review(_ g: Rating) throws -> RecordLogItem
 }
 
 /**

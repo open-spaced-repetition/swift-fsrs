@@ -7,7 +7,7 @@
 import Foundation
 
 class LongTermScheduler: AbstractScheduler {
-    override func newState(grade: Rating) -> RecordLogItem {
+    override func newState(grade: Rating) throws -> RecordLogItem {
         if let item = next[grade] { return item }
         
         current.scheduledDays = 0
@@ -32,11 +32,11 @@ class LongTermScheduler: AbstractScheduler {
         return next[grade]!
     }
     
-    override func learningState(grade: Rating) -> RecordLogItem {
-        reviewState(grade: grade)
+    override func learningState(grade: Rating) throws -> RecordLogItem {
+        try reviewState(grade: grade)
     }
-    
-    override func reviewState(grade: Rating) -> RecordLogItem {
+
+    override func reviewState(grade: Rating) throws -> RecordLogItem {
         if let item = next[grade] { return item }
         
         let interval = current.elapsedDays
@@ -94,7 +94,7 @@ class LongTermScheduler: AbstractScheduler {
     ) {
         nextAgain.difficulty = algorithm.nextDifficulty(d: difficulty, g: .again)
         let sAfterAll = algorithm.nextForgetStability(d: difficulty, s: stability, r: retrievability)
-        nextAgain.stability = FSRSHelper.clamp(stability, FSRSDefaults.S_MIN, sAfterAll)
+        nextAgain.stability = FSRSHelper.clamp(stability, algorithm.sMin, sAfterAll)
         
         nextHard.difficulty = algorithm.nextDifficulty(d: difficulty, g: .hard)
         nextHard.stability = algorithm.nextRecallStability(

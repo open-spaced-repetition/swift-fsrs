@@ -31,14 +31,14 @@ class LongTermSchedulerTests: XCTestCase {
     }
 
 
-    func test1() {
+    func test1() throws {
         let testAdditionalCases: (
             _ now: Date,
             _ ratings: [Rating],
             _ exivlHistory: [Int],
             _ exsHistory: [Double],
             _ exdHistory: [Double]
-        ) -> Void = { [weak self] now,ratings,exivlHistory,exsHistory,exdHistory in
+        ) throws -> Void = { [weak self] now,ratings,exivlHistory,exsHistory,exdHistory in
             guard let self = self else { return }
             var now = now
             var card = FSRSDefaults().createEmptyCard()
@@ -47,7 +47,7 @@ class LongTermSchedulerTests: XCTestCase {
             var dHistory: [Double] = []
 
             for rating in ratings {
-                let record = algorithm.repeat(card: card, now: now)[rating]
+                let record = (try algorithm.repeat(card: card, now: now))[rating]
                 let next = try! FSRS(parameters: params).next(card: card, now: now, grade: rating)
                 XCTAssertEqual(record, next)
 
@@ -62,7 +62,7 @@ class LongTermSchedulerTests: XCTestCase {
             XCTAssertEqual(sHistory, exsHistory)
             XCTAssertEqual(dHistory, exdHistory)
         }
-        testAdditionalCases(
+        try testAdditionalCases(
             calendar.date(from: DateComponents(calendar: Calendar.current, year: 2022, month: 12, day: 29, hour: 12, minute: 30))!,
             [
                 .good, .good, .good, .good, .good, .good, .again,
@@ -83,14 +83,14 @@ class LongTermSchedulerTests: XCTestCase {
             ])
     }
 
-    func test2() {
+    func test2() throws {
         let testAdditionalCases: (
             _ now: Date,
             _ ratings: [Rating],
             _ exivlHistory: [Int],
             _ exsHistory: [Double],
             _ exdHistory: [Double]
-        ) -> Void = { [weak self] now,ratings,exivlHistory,exsHistory,exdHistory in
+        ) throws -> Void = { [weak self] now,ratings,exivlHistory,exsHistory,exdHistory in
             guard let self = self else { return }
             var now = now
             var card = FSRSDefaults().createEmptyCard()
@@ -99,7 +99,7 @@ class LongTermSchedulerTests: XCTestCase {
             var dHistory: [Double] = []
 
             for rating in ratings {
-                let record = algorithm.repeat(card: card, now: now)[rating]
+                let record = (try algorithm.repeat(card: card, now: now))[rating]
                 let next = try! FSRS(parameters: params).next(card: card, now: now, grade: rating)
                 XCTAssertEqual(record, next)
 
@@ -114,7 +114,7 @@ class LongTermSchedulerTests: XCTestCase {
             XCTAssertEqual(sHistory, exsHistory)
             XCTAssertEqual(dHistory, exdHistory)
         }
-        testAdditionalCases(
+        try testAdditionalCases(
             calendar.date(from: DateComponents(calendar: Calendar.current, year: 2022, month: 12, day: 29, hour: 12, minute: 30))!,
             [
                 .again,
@@ -139,14 +139,14 @@ class LongTermSchedulerTests: XCTestCase {
               ])
     }
 
-    func test3() {
+    func test3() throws {
         let testAdditionalCases: (
             _ now: Date,
             _ ratings: [Rating],
             _ exivlHistory: [Int],
             _ exsHistory: [Double],
             _ exdHistory: [Double]
-        ) -> Void = { [weak self] now,ratings,exivlHistory,exsHistory,exdHistory in
+        ) throws -> Void = { [weak self] now,ratings,exivlHistory,exsHistory,exdHistory in
             guard let self = self else { return }
             var now = now
             var card = FSRSDefaults().createEmptyCard()
@@ -155,7 +155,7 @@ class LongTermSchedulerTests: XCTestCase {
             var dHistory: [Double] = []
 
             for rating in ratings {
-                let record = algorithm.repeat(card: card, now: now)[rating]
+                let record = (try algorithm.repeat(card: card, now: now))[rating]
                 let next = try! FSRS(parameters: params).next(card: card, now: now, grade: rating)
                 XCTAssertEqual(record, next)
 
@@ -170,7 +170,7 @@ class LongTermSchedulerTests: XCTestCase {
             XCTAssertEqual(sHistory, exsHistory)
             XCTAssertEqual(dHistory, exdHistory)
         }
-        testAdditionalCases(
+        try testAdditionalCases(
             calendar.date(from: DateComponents(calendar: Calendar.current, year: 2022, month: 12, day: 29, hour: 12, minute: 30))!,
             [
                 .hard,
@@ -195,14 +195,14 @@ class LongTermSchedulerTests: XCTestCase {
               ])
     }
 
-    func test4() {
+    func test4() throws {
         let testAdditionalCases: (
             _ now: Date,
             _ ratings: [Rating],
             _ exivlHistory: [Int],
             _ exsHistory: [Double],
             _ exdHistory: [Double]
-        ) -> Void = { [weak self] now,ratings,exivlHistory,exsHistory,exdHistory in
+        ) throws -> Void = { [weak self] now,ratings,exivlHistory,exsHistory,exdHistory in
             guard let self = self else { return }
             var now = now
             var card = FSRSDefaults().createEmptyCard()
@@ -211,7 +211,7 @@ class LongTermSchedulerTests: XCTestCase {
             var dHistory: [Double] = []
 
             for rating in ratings {
-                let record = algorithm.repeat(card: card, now: now)[rating]
+                let record = (try algorithm.repeat(card: card, now: now))[rating]
                 let next = try! FSRS(parameters: params).next(card: card, now: now, grade: rating)
                 XCTAssertEqual(record, next)
 
@@ -226,7 +226,7 @@ class LongTermSchedulerTests: XCTestCase {
             XCTAssertEqual(sHistory, exsHistory)
             XCTAssertEqual(dHistory, exdHistory)
         }
-        testAdditionalCases(
+        try testAdditionalCases(
             calendar.date(from: DateComponents(calendar: Calendar.current, year: 2022, month: 12, day: 29, hour: 12, minute: 30))!,
             [
                 .good,
@@ -251,14 +251,14 @@ class LongTermSchedulerTests: XCTestCase {
               ])
     }
 
-    func test5() {
+    func test5() throws {
         let testAdditionalCases: (
             _ now: Date,
             _ ratings: [Rating],
             _ exivlHistory: [Int],
             _ exsHistory: [Double],
             _ exdHistory: [Double]
-        ) -> Void = { [weak self] now,ratings,exivlHistory,exsHistory,exdHistory in
+        ) throws -> Void = { [weak self] now,ratings,exivlHistory,exsHistory,exdHistory in
             guard let self = self else { return }
             var now = now
             var card = FSRSDefaults().createEmptyCard()
@@ -267,7 +267,7 @@ class LongTermSchedulerTests: XCTestCase {
             var dHistory: [Double] = []
 
             for rating in ratings {
-                let record = algorithm.repeat(card: card, now: now)[rating]
+                let record = (try algorithm.repeat(card: card, now: now))[rating]
                 let next = try! FSRS(parameters: params).next(card: card, now: now, grade: rating)
                 XCTAssertEqual(record, next)
 
@@ -282,7 +282,7 @@ class LongTermSchedulerTests: XCTestCase {
             XCTAssertEqual(sHistory, exsHistory)
             XCTAssertEqual(dHistory, exdHistory)
         }
-        testAdditionalCases(
+        try testAdditionalCases(
             calendar.date(from: DateComponents(calendar: Calendar.current, year: 2022, month: 12, day: 29, hour: 12, minute: 30))!,
             [
                 .easy,
@@ -307,7 +307,7 @@ class LongTermSchedulerTests: XCTestCase {
             ])
     }
 
-    func testStateSwitching() {
+    func testStateSwitching() throws {
         var ivlHistory: [Int] = []
         var sHistory: [Double] = []
         var dHistory: [Double] = []
@@ -325,7 +325,7 @@ class LongTermSchedulerTests: XCTestCase {
             let grade = grades[i]
             let enable = shortTerm[i]
             algorithm.parameters.enableShortTerm = enable
-            let record = algorithm.repeat(card: card, now: now)[grade]
+            let record = (try algorithm.repeat(card: card, now: now))[grade]
             var tempParam = FSRSDefaults().generatorParameters(props: params)
             tempParam.enableShortTerm = enable
             let next = try! FSRS(parameters: tempParam).next(card: card, now: now, grade: grade)
@@ -353,7 +353,7 @@ class LongTermSchedulerTests: XCTestCase {
         ])
     }
 
-    func testGetRetrievability() {
+    func testGetRetrievability() throws {
         let f = FSRS(parameters: .init(w: [
             0.4072, 1.1829, 3.1262, 15.4722, 7.2102, 0.5316, 1.0651, 0.0234, 1.616,
             0.1544, 1.0824, 1.9813, 0.0953, 0.2975, 2.2042, 0.2407, 2.9466, 0.5034,
@@ -362,7 +362,7 @@ class LongTermSchedulerTests: XCTestCase {
         let now = dateFormatter.date(from: "2024-08-03 18:15:34")!
         let viewDate = dateFormatter.date(from: "2024-08-03 18:25:34")!
         var card = FSRSDefaults().createEmptyCard(now: now)
-        card = f.repeat(card: card, now: now)[Rating.again]!.card
+        card = try f.repeat(card: card, now: now)[Rating.again]!.card
         let retrievability = f.getRetrievability(card: card, now: viewDate).string
         XCTAssertEqual(retrievability, "100.00%")
 
