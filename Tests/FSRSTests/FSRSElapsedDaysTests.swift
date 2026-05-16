@@ -24,11 +24,11 @@ import Testing
         initialCard = FSRSDefaults().createEmptyCard(now: createDue)
     }
 
-    @Test func firstRepeatGood() {
+    @Test func firstRepeatGood() throws {
         var card = initialCard
         var components = DateComponents(year: 2023, month: 11, day: 05, hour: 08, minute: 27, second: 02)
         let firstDue = calendar.date(from: components)!
-        var sc = f.repeat(card: card, now: firstDue)
+        var sc = try f.repeat(card: card, now: firstDue)
 
         var currentLog = sc[.good]?.log
         #expect(currentLog?.elapsedDays == 0)
@@ -38,7 +38,7 @@ import Testing
         components = DateComponents(year: 2023, month: 11, day: 08, hour: 15, minute: 02, second: 09)
         let secondDue = calendar.date(from: components)!
 
-        sc = f.repeat(card: card, now: secondDue)
+        sc = try f.repeat(card: card, now: secondDue)
         currentLog = sc[.again]?.log
 
         var expectedElapsedDays: Double = Date.dateDiff(now: secondDue, pre: card.lastReview, unit: .days)
@@ -50,7 +50,7 @@ import Testing
         components = DateComponents(year: 2023, month: 11, day: 08, hour: 15, minute: 02, second: 30)
         let thirdDue = calendar.date(from: components)!
 
-        sc = f.repeat(card: card, now: thirdDue)
+        sc = try f.repeat(card: card, now: thirdDue)
         currentLog = sc[.again]?.log
 
         expectedElapsedDays = Date.dateDiff(now: thirdDue, pre: card.lastReview, unit: .days)
@@ -62,7 +62,7 @@ import Testing
         components = DateComponents(year: 2023, month: 11, day: 08, hour: 15, minute: 04, second: 08)
         let fourthDue = calendar.date(from: components)!
 
-        sc = f.repeat(card: card, now: fourthDue)
+        sc = try f.repeat(card: card, now: fourthDue)
         currentLog = sc[.good]?.log
 
         expectedElapsedDays = Date.dateDiff(now: fourthDue, pre: card.lastReview, unit: .days)

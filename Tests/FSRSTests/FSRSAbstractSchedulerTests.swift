@@ -14,7 +14,7 @@ import Testing
         let now = Date()
         let card = FSRSDefaults().createEmptyCard(now: now)
         let f = FSRS(parameters: .init())
-        let preview = f.repeat(card: card, now: now)
+        let preview = try f.repeat(card: card, now: now)
         let again = try f.next(card: card, now: now, grade: .again)
         let hard = try f.next(card: card, now: now, grade: .hard)
         let good = try f.next(card: card, now: now, grade: .good)
@@ -36,5 +36,29 @@ import Testing
             let expectedCard = expectPreview[item.value.log.rating]
             #expect(item.value.card == expectedCard)
         }
+    }
+
+    /// Exercise the `IPreview` subscript setter — the getter is used everywhere
+    /// in the test suite, but the setter (used by external integrations that
+    /// want to patch a preview) had no coverage.
+    @Test func previewSubscriptSetReplacesItem() throws {
+        let now = Date()
+        let card = FSRSDefaults().createEmptyCard(now: now)
+        let f = FSRS(parameters: .init(enableFuzz: false))
+        var preview = try f.repeat(card: card, now: now)
+        let goodOriginal = preview[.good]!
+
+        // Mutate via setter — pick a different card to make the change visible.
+        var replacement = goodOriginal
+        replacement.card.stability = 999.0
+        preview[.good] = replacement
+
+        #expect(preview[.good]?.card.stability == 999.0)
+        // Other ratings untouched.
+        #expect(preview[.again]?.card.stability != 999.0)
+
+        // Setter accepts nil to clear.
+        preview[.easy] = nil
+        #expect(preview[.easy] == nil)
     }
 }

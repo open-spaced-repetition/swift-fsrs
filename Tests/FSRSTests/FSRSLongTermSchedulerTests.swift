@@ -124,7 +124,7 @@ import Testing
         var dHistory: [Double] = []
 
         for rating in fixture.ratings {
-            let record = algorithm.repeat(card: card, now: now)[rating]
+            let record = try algorithm.repeat(card: card, now: now)[rating]
             let next = try FSRS(parameters: params).next(card: card, now: now, grade: rating)
             #expect(record == next)
 
@@ -158,7 +158,7 @@ import Testing
             var iterParams: FSRSParameters = params
             iterParams.enableShortTerm = enable
             let iterAlgorithm = FSRS(parameters: iterParams)
-            let record = iterAlgorithm.repeat(card: card, now: now)[grade]
+            let record = try iterAlgorithm.repeat(card: card, now: now)[grade]
             var tempParam = FSRSDefaults().generatorParameters(props: params)
             tempParam.enableShortTerm = enable
             let next = try FSRS(parameters: tempParam).next(card: card, now: now, grade: grade)
@@ -178,7 +178,7 @@ import Testing
         #expect(stateHistory == [.learning, .review, .review, .review, .review, .relearning])
     }
 
-    @Test func getRetrievability() {
+    @Test func getRetrievability() throws {
         let f = FSRS(parameters: .init(w: [
             0.4072, 1.1829, 3.1262, 15.4722, 7.2102, 0.5316, 1.0651, 0.0234, 1.616,
             0.1544, 1.0824, 1.9813, 0.0953, 0.2975, 2.2042, 0.2407, 2.9466, 0.5034,
@@ -187,7 +187,7 @@ import Testing
         let now = dateFormatter.date(from: "2024-08-03 18:15:34")!
         let viewDate = dateFormatter.date(from: "2024-08-03 18:25:34")!
         var card = FSRSDefaults().createEmptyCard(now: now)
-        card = f.repeat(card: card, now: now)[.again]!.card
+        card = try f.repeat(card: card, now: now)[.again]!.card
         let retrievability = f.getRetrievability(card: card, now: viewDate).string
         #expect(retrievability == "100.00%")
 

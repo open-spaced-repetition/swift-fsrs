@@ -69,4 +69,19 @@ import Testing
 
         #expect(memoryState?.stability.toFixedNumber(2) ?? 0.0 == 71.77)
     }
+
+    @Test func dateDiffMinutes() {
+        let now = Date(timeIntervalSince1970: 1_700_000_000)
+        // Two-minute gap → 2.
+        let twoMinAgo = now.addingTimeInterval(-120)
+        #expect(Date.dateDiff(now: now, pre: twoMinAgo, unit: .minutes) == 2)
+        // Half-minute gap floors to 0.
+        let halfMinAgo = now.addingTimeInterval(-30)
+        #expect(Date.dateDiff(now: now, pre: halfMinAgo, unit: .minutes) == 0)
+        // One-hour gap → 60 minutes.
+        let hourAgo = now.addingTimeInterval(-3600)
+        #expect(Date.dateDiff(now: now, pre: hourAgo, unit: .minutes) == 60)
+        // Nil pre → 0 (matches the guard at the top of dateDiff).
+        #expect(Date.dateDiff(now: now, pre: nil, unit: .minutes) == 0)
+    }
 }

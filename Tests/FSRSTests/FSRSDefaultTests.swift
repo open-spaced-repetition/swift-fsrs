@@ -64,4 +64,16 @@ import Testing
             #expect(card.state.rawValue == 0)
         }
     }
+
+    @Test(arguments: [16, 18, 20, 22])
+    func unsupportedWLengthFallsBackToDefault(length: Int) {
+        // The migration switch in `generatorParameters` only knows 17 / 19 / 21
+        // lengths. Anything else hits the `default: break` branch, leaving the
+        // pre-loaded `defaultW` (19-length) in place — silently substituted.
+        let raw = Array(repeating: 0.5, count: length)
+        let defaults = FSRSDefaults()
+        let p = defaults.generatorParameters(props: .init(w: raw))
+        #expect(p.w.count == 19)
+        #expect(FSRSAlgorithmVersion.detect(p.w) == .v5)
+    }
 }

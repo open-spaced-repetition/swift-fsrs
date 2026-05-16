@@ -597,4 +597,33 @@ struct ReviewState {
         #expect(results.rescheduleItem?.card.stability == historyCard.last?.stability)
         #expect(results.rescheduleItem?.card.difficulty == historyCard.last?.difficulty)
     }
+
+    /// FSRSReschedule.reschedule wraps each non-manual replay in a do/catch:
+    /// if `fsrs.next` throws (e.g. malformed learning steps), it logs and
+    /// continues. Verify that when every replay throws, the result is an empty
+    /// collection (no crash, no propagated throw) and the manual record is nil.
+    @Test func rescheduleSwallowsReplayErrors() throws {
+        let f = FSRS(parameters: .init(
+            w: FSRSDefaults.defaultWv6,
+            enableFuzz: false,
+            learningSteps: ["1m", "bogus"]  // "bogus" trips convertStepUnitToMinutes
+        ))
+        let now = calendar.date(from: DateComponents(year: 2024, month: 9, day: 13))!
+        let reviews: [ReviewLog] = (1...3).map { i in
+            ReviewLog(
+                rating: .good,
+                review: calendar.date(from: DateComponents(year: 2024, month: 9, day: 13 + i))!
+            )
+        }
+
+        let result = try f.reschedule(
+            currentCard: FSRSDefaults().createEmptyCard(),
+            reviews: reviews,
+            options: .init(now: now)
+        )
+
+        // Every replay threw and was swallowed — no items produced, manual nil.
+        #expect(result.collections.isEmpty)
+        #expect(result.rescheduleItem == nil)
+    }
 }

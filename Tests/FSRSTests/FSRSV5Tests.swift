@@ -29,7 +29,7 @@ import Testing
     @Test func ivlHistory() throws {
         var card = FSRSDefaults().createEmptyCard()
         var now = calendar.date(from: DateComponents(year: 2022, month: 12, day: 29, hour: 12, minute: 30))!
-        var schedulingCards = f.repeat(card: card, now: now)
+        var schedulingCards = try f.repeat(card: card, now: now)
 
         let ratings: [Rating] = [
             .good, .good, .good, .good, .good, .good,
@@ -55,16 +55,16 @@ import Testing
             let ivl = card.scheduledDays
             ivlHistory.append(Int(ivl))
             now = card.due
-            schedulingCards = f.repeat(card: card, now: now)
+            schedulingCards = try f.repeat(card: card, now: now)
         }
 
         #expect(ivlHistory == [0, 4, 14, 44, 125, 328, 0, 0, 7, 16, 34, 71, 142])
     }
 
-    @Test func memoryState() {
+    @Test func memoryState() throws {
         var card = FSRSDefaults().createEmptyCard()
         var now = calendar.date(from: DateComponents(year: 2022, month: 12, day: 29, hour: 12, minute: 30))!
-        var schedulingCards = f.repeat(card: card, now: now)
+        var schedulingCards = try f.repeat(card: card, now: now)
 
         let ratings: [Rating] = [.again, .good, .good, .good, .good, .good]
         let intervals: [Int] = [0, 0, 1, 3, 8, 21]
@@ -72,7 +72,7 @@ import Testing
         for (index, rating) in ratings.enumerated() {
             card = schedulingCards[rating]!.card
             now.addTimeInterval(Double(intervals[index]) * 24 * 60 * 60)
-            schedulingCards = f.repeat(card: card, now: now)
+            schedulingCards = try f.repeat(card: card, now: now)
         }
 
         let stability = schedulingCards[.good]!.card.stability
@@ -81,10 +81,10 @@ import Testing
         expectClose(difficulty, 7.0866, 0.0001)
     }
 
-    @Test func firstRepeat() {
+    @Test func firstRepeat() throws {
         let card = FSRSDefaults().createEmptyCard()
         let now = calendar.date(from: DateComponents(year: 2022, month: 12, day: 29, hour: 12, minute: 30))!
-        let schedulingCards = f.repeat(card: card, now: now)
+        let schedulingCards = try f.repeat(card: card, now: now)
 
         var stability: [Double] = []
         var difficulty: [Double] = []
@@ -132,9 +132,9 @@ import Testing
         #expect(fsrs.getRetrievability(card: card, now: now).string == "0.00%")
     }
 
-    @Test func retrievabilityPercentageForReviewCards() {
+    @Test func retrievabilityPercentageForReviewCards() throws {
         let card = FSRSDefaults().createEmptyCard(now: dateFormatter.date(from: "2023-12-01 04:00:00")!)
-        let sc = fsrs.repeat(card: card, now: dateFormatter.date(from: "2023-12-01 04:05:00")!)
+        let sc = try fsrs.repeat(card: card, now: dateFormatter.date(from: "2023-12-01 04:05:00")!)
         let expectedResults = ["100.00%", "100.00%", "100.00%", "89.83%"]
         let expectedNumbers = [1.0, 1.0, 1.0, 0.89832125]
 

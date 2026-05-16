@@ -39,11 +39,11 @@ import Testing
 
     // MARK: - First repeat
 
-    @Test func firstRepeat() {
+    @Test func firstRepeat() throws {
         let f = FSRS(parameters: .init(w: w))
         let card = FSRSDefaults().createEmptyCard()
         let now = calendar.date(from: DateComponents(year: 2022, month: 12, day: 29, hour: 12, minute: 30))!
-        let log = f.repeat(card: card, now: now)
+        let log = try f.repeat(card: card, now: now)
 
         var stability: [Double] = []
         var difficulty: [Double] = []
@@ -78,7 +78,7 @@ import Testing
         let f = FSRS(parameters: .init(w: w))
         var card = FSRSDefaults().createEmptyCard()
         var now = calendar.date(from: DateComponents(year: 2022, month: 12, day: 29, hour: 12, minute: 30))!
-        var schedulingCards = f.repeat(card: card, now: now)
+        var schedulingCards = try f.repeat(card: card, now: now)
 
         let ratings: [Rating] = [
             .good, .good, .good, .good, .good, .good,
@@ -107,7 +107,7 @@ import Testing
             card = schedulingCards[rating]!.card
             ivlHistory.append(Int(card.scheduledDays))
             now = card.due
-            schedulingCards = f.repeat(card: card, now: now)
+            schedulingCards = try f.repeat(card: card, now: now)
         }
 
         #expect(ivlHistory == [0, 2, 11, 46, 163, 498, 0, 0, 2, 4, 7, 12, 21])
@@ -155,5 +155,49 @@ import Testing
         #expect(v5.factor != v6.factor)
         #expect(v5.decay == -0.5)
         #expect(v6.decay == -0.1542)
+    }
+
+    // MARK: - Learning steps ≥1 day
+
+    /// Steps ≥1440 minutes (1 day) take a different branch in
+    /// `BasicSchedulerV6.applyLearningSteps`: the card goes to `.review` and
+    /// `scheduledDays` is derived from `mins / 1440` rather than the
+    /// algorithm's `nextInterval`. With `learningSteps: ["1m", "2d"]`, a fresh
+    /// card + `.good` advances to step index 1 (the 2d step), which exceeds
+    /// the 1440-minute threshold.
+    @Test func longLearningStepGraduatesToReviewWithScheduledDays() throws {
+        let f = FSRS(parameters: .init(
+            w: w,
+            enableFuzz: false,
+            learningSteps: ["1m", "2d"]
+        ))
+        let card = FSRSDefaults().createEmptyCard()
+        let now = calendar.date(from: DateComponents(year: 2024, month: 1, day: 1, hour: 12))!
+
+        // .good on a new card targets steps[1] = "2d" → 2880 minutes,
+        // hitting the `mins >= 1440` branch.
+        let item = try f.next(card: card, now: now, grade: .good)
+        #expect(item.card.state == .review)
+        #expect(item.card.scheduledDays == 2)
+        // `learningSteps` is preserved from `info.nextStep` (step that was
+        // consumed), not reset to 0 — verifies the ≥1d branch.
+        #expect(item.card.learningSteps == 1)
+    }
+
+    /// Boundary: mins == 1440 exactly is still the ≥1d branch.
+    @Test func singleOneDayLearningStepGraduates() throws {
+        let f = FSRS(parameters: .init(
+            w: w,
+            enableFuzz: false,
+            learningSteps: ["1d"]
+        ))
+        let card = FSRSDefaults().createEmptyCard()
+        let now = calendar.date(from: DateComponents(year: 2024, month: 1, day: 1, hour: 12))!
+
+        // For a single-step config + .again, curStep=0 wraps to the same step.
+        // .again schedules 1440 mins → mins >= 1440 branch.
+        let item = try f.next(card: card, now: now, grade: .again)
+        #expect(item.card.state == .review)
+        #expect(item.card.scheduledDays == 1)
     }
 }

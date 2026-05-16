@@ -68,6 +68,39 @@ import Testing
         #expect(v6.sMin == FSRSDefaults.S_MIN_V6)
     }
 
+    @Test func ceilingFiniteForOutOfRangeInputs() {
+        // w[11] / w[13] feed into log(...) inside computeW17W18Ceiling. Pre-
+        // clamping inputs prevents NaN from a hostile `w` (or a tweaked test
+        // harness) poisoning the rest of the clamp table.
+        var w = FSRSDefaults.defaultWv6
+        w[11] = -1.0   // log(w[11]) would be NaN
+        w[13] = -0.5   // log(2^w[13] - 1) → log(negative) NaN
+        let ceiling = FSRSDefaults.computeW17W18Ceiling(
+            parameters: w,
+            numRelearningSteps: 2
+        )
+        #expect(ceiling.isFinite)
+        #expect(ceiling >= 0.01)
+        #expect(ceiling <= 2.0)
+    }
+
+    @Test func malformedLearningStepThrowsOnReview() {
+        // Malformed step strings used to be silently swallowed by `try?` in
+        // basicLearningStepsStrategy, causing the v6 scheduler to graduate
+        // cards immediately. Now they propagate `FSRSError(.invalidParam)`
+        // through the throwing review chain.
+        let p = FSRSParameters(
+            w: FSRSDefaults.defaultWv6,
+            learningSteps: ["1m", "bogus"]
+        )
+        let f = FSRS(parameters: p)
+        let card = FSRSDefaults().createEmptyCard()
+        let now = Date()
+        #expect(throws: FSRSError.self) {
+            _ = try f.next(card: card, now: now, grade: .good)
+        }
+    }
+
     @Test func factorIsDerivedFromDecayInV6() {
         let v5 = FSRS(parameters: .init())
         expectClose(v5.factor, 19.0 / 81.0, 1e-12)

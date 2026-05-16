@@ -26,7 +26,7 @@ import Testing
     @Test func firstRollback() throws {
         let card = FSRSDefaults().createEmptyCard()
         let now = DateComponents(calendar: .current, year: 2022, month: 12, day: 29, hour: 12, minute: 30).date!
-        let schedulingCards = f.repeat(card: card, now: now)
+        let schedulingCards = try f.repeat(card: card, now: now)
 
         let grades: [Rating] = [.again, .hard, .good, .easy]
         for rating in grades {
@@ -38,16 +38,44 @@ import Testing
     @Test func rollback2() throws {
         var card = FSRSDefaults().createEmptyCard()
         var now = DateComponents(calendar: .current, year: 2022, month: 12, day: 29, hour: 12, minute: 30).date!
-        var schedulingCards = f.repeat(card: card, now: now)
+        var schedulingCards = try f.repeat(card: card, now: now)
 
         card = schedulingCards[.easy]!.card
         now = card.due
-        schedulingCards = f.repeat(card: card, now: now)
+        schedulingCards = try f.repeat(card: card, now: now)
 
         let grades: [Rating] = [.again, .hard, .good, .easy]
         for rating in grades {
             let rollbackCard = try f.rollback(card: schedulingCards[rating]!.card, log: schedulingCards[rating]!.log)
             #expect(rollbackCard == card)
         }
+    }
+
+    @Test func rollbackMissingStateThrows() {
+        let card = FSRSDefaults().createEmptyCard()
+        let log = ReviewLog(
+            rating: .good,
+            state: nil,        // missing state
+            due: Date(),
+            review: Date()
+        )
+        let err = #expect(throws: FSRSError.self) {
+            _ = try f.rollback(card: card, log: log)
+        }
+        #expect(err?.errorReason == .invalidParam)
+    }
+
+    @Test func rollbackNewStateMissingDueThrows() {
+        let card = FSRSDefaults().createEmptyCard()
+        let log = ReviewLog(
+            rating: .good,
+            state: .new,
+            due: nil,          // missing due — required for .new state rollback
+            review: Date()
+        )
+        let err = #expect(throws: FSRSError.self) {
+            _ = try f.rollback(card: card, log: log)
+        }
+        #expect(err?.errorReason == .invalidParam)
     }
 }
