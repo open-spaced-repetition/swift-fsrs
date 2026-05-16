@@ -45,9 +45,11 @@ public struct ReviewLog: Equatable, Codable, Hashable, Sendable {
     public var elapsedDays: Double     // Number of days elapsed since the last review
     public var lastElapsedDays: Double // Number of days between the last two reviews
     public var scheduledDays: Double   // Number of days until the next review
-    /// Tracks the current (re)learning step index. Always 0 in v5 (the v5
-    /// scheduler doesn't expose configurable steps); meaningful only under v6.
-    public var learningSteps: Int      // 0 = not in a step
+    /// 0-based index into `params.learningSteps` / `relearningSteps`. Only
+    /// meaningful when the card's `state` is `.learning` or `.relearning` —
+    /// in `.new`/`.review` the value is just 0 because no step applies.
+    /// Always 0 under v5 (v5's scheduler doesn't expose configurable steps).
+    public var learningSteps: Int
     public var review: Date            // Date of the review
 
     public init(
@@ -115,8 +117,10 @@ public struct Card: Equatable, Codable, Hashable, Sendable {
     public var difficulty: Double    // Reflects the inherent difficulty of the card content
     public var elapsedDays: Double   // Days since the card was last reviewed
     public var scheduledDays: Double // The interval at which the card is next scheduled
-    /// Index of the current (re)learning step. 0 means "not currently in a
-    /// step". Always 0 under v5; meaningful under v6's `BasicSchedulerV6`.
+    /// 0-based index into `params.learningSteps` / `relearningSteps`. Only
+    /// meaningful when `state` is `.learning` or `.relearning` — in
+    /// `.new`/`.review` the value is just 0 because no step applies. Always
+    /// 0 under v5 (v5's scheduler doesn't expose configurable steps).
     public var learningSteps: Int
     public var reps: Int             // Total number of times the card has been reviewed
     public var lapses: Int           // Times the card was forgotten or remembered incorrectly

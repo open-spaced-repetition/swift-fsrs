@@ -24,10 +24,10 @@ class FSRSRollbackTests: XCTestCase {
         ))
     }
 
-    func testFirstRollback() {
+    func testFirstRollback() throws {
         let card = FSRSDefaults().createEmptyCard()
         let now = DateComponents(calendar: .current, year: 2022, month: 12, day: 29, hour: 12, minute: 30).date!
-        let schedulingCards = f.repeat(card: card, now: now)
+        let schedulingCards = try f.repeat(card: card, now: now)
         
         let grades: [Rating] = [Rating.again, Rating.hard, Rating.good, Rating.easy]
         for rating in grades {
@@ -40,14 +40,14 @@ class FSRSRollbackTests: XCTestCase {
         }
     }
 
-    func testRollback2() {
+    func testRollback2() throws {
         var card = FSRSDefaults().createEmptyCard()
         var now = DateComponents(calendar: .current, year: 2022, month: 12, day: 29, hour: 12, minute: 30).date!
-        var schedulingCards = f.repeat(card: card, now: now)
+        var schedulingCards = try f.repeat(card: card, now: now)
 
         card = schedulingCards[Rating.easy]!.card
         now = card.due
-        schedulingCards = f.repeat(card: card, now: now)
+        schedulingCards = try f.repeat(card: card, now: now)
 
         let grades: [Rating] = [Rating.again, Rating.hard, Rating.good, Rating.easy]
         for rating in grades {

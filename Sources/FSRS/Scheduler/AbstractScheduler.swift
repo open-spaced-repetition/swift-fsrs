@@ -8,12 +8,14 @@ import Foundation
 
 class AbstractScheduler: IScheduler {
     var preview: IPreview {
-        .init(recordLog: [
-            .again: review(.again),
-            .hard: review(.hard),
-            .good: review(.good),
-            .easy: review(.easy)
-        ])
+        get throws {
+            .init(recordLog: [
+                .again: try review(.again),
+                .hard: try review(.hard),
+                .good: try review(.good),
+                .easy: try review(.easy)
+            ])
+        }
     }
     var last: Card
     var current: Card
@@ -44,26 +46,26 @@ class AbstractScheduler: IScheduler {
         self.seed = "\(reviewTime.timeIntervalSince1970)_\(current.reps)_\(current.difficulty * current.stability)"
     }
 
-    func review(_ g: Rating) -> RecordLogItem {
+    func review(_ g: Rating) throws -> RecordLogItem {
         switch last.state {
         case .new:
-            return newState(grade: g)
+            return try newState(grade: g)
         case .learning, .relearning:
-            return learningState(grade: g)
+            return try learningState(grade: g)
         case .review:
-            return reviewState(grade: g)
+            return try reviewState(grade: g)
         }
     }
 
-    func newState(grade: Rating) -> RecordLogItem {
+    func newState(grade: Rating) throws -> RecordLogItem {
         print("subclass must override")
         return .init(card: Card(), log: ReviewLog(rating: .manual, state: .new, due: Date(), review: Date()))
     }
-    func learningState(grade: Rating) -> RecordLogItem {
+    func learningState(grade: Rating) throws -> RecordLogItem {
         print("subclass must override")
         return .init(card: Card(), log: ReviewLog(rating: .manual, state: .new, due: Date(), review: Date()))
     }
-    func reviewState(grade: Rating) -> RecordLogItem {
+    func reviewState(grade: Rating) throws -> RecordLogItem {
         print("subclass must override")
         return .init(card: Card(), log: ReviewLog(rating: .manual, state: .new, due: Date(), review: Date()))
     }

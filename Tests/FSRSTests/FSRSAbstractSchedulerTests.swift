@@ -10,11 +10,11 @@ import XCTest
 @testable import FSRS
 
 class BasicSchedulerTests: XCTestCase {
-    func testSymbolIterator() {
+    func testSymbolIterator() throws {
         let now = Date()
         let card = FSRSDefaults().createEmptyCard(now: now)
         let f = FSRS(parameters: .init())
-        let preview = f.repeat(card: card, now: now)
+        let preview = try f.repeat(card: card, now: now)
         let again = try! f.next(card: card, now: now, grade: .again)
         let hard = try! f.next(card: card, now: now, grade: .hard)
         let good = try! f.next(card: card, now: now, grade: .good)

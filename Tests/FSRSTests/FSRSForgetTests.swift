@@ -29,12 +29,12 @@ class FSRSForgetTests: XCTestCase {
         ))
     }
 
-    func testForget() {
+    func testForget() throws {
         let card = FSRSDefaults().createEmptyCard()
-        
+
         let now = calendar.date(from: DateComponents(year: 2022, month: 12, day: 29, hour: 12, minute: 30))!
         let forgetNow = calendar.date(from: DateComponents(year: 2023, month: 12, day: 30, hour: 12, minute: 30))!
-        let schedulingCards = f.repeat(card: card, now: now)
+        let schedulingCards = try f.repeat(card: card, now: now)
 
         let grades: [Rating] = [.again, .hard, .good, .easy]
         

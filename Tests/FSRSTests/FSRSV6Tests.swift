@@ -39,11 +39,11 @@ final class FSRSV6Tests: XCTestCase {
 
     // MARK: - First repeat (matches ts-fsrs FSRS-6.test 'first repeat')
 
-    func testFirstRepeat() {
+    func testFirstRepeat() throws {
         let f = FSRS(parameters: .init(w: w))
         let card = FSRSDefaults().createEmptyCard()
         let now = calendar.date(from: DateComponents(year: 2022, month: 12, day: 29, hour: 12, minute: 30))!
-        let log = f.repeat(card: card, now: now)
+        let log = try f.repeat(card: card, now: now)
 
         var stability: [Double] = []
         var difficulty: [Double] = []
@@ -79,7 +79,7 @@ final class FSRSV6Tests: XCTestCase {
         let f = FSRS(parameters: .init(w: w))
         var card = FSRSDefaults().createEmptyCard()
         var now = calendar.date(from: DateComponents(year: 2022, month: 12, day: 29, hour: 12, minute: 30))!
-        var schedulingCards = f.repeat(card: card, now: now)
+        var schedulingCards = try f.repeat(card: card, now: now)
 
         let ratings: [Rating] = [
             .good, .good, .good, .good, .good, .good,
@@ -109,7 +109,7 @@ final class FSRSV6Tests: XCTestCase {
             card = schedulingCards[rating]!.card
             ivlHistory.append(Int(card.scheduledDays))
             now = card.due
-            schedulingCards = f.repeat(card: card, now: now)
+            schedulingCards = try f.repeat(card: card, now: now)
         }
 
         XCTAssertEqual(ivlHistory, [0, 2, 11, 46, 163, 498, 0, 0, 2, 4, 7, 12, 21])

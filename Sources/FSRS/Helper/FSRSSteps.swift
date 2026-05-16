@@ -20,12 +20,13 @@ public struct LearningStepOutcome: Equatable {
 /// Strategy signature: given parameters, the card's current state, and the
 /// current step index, return per-grade outcomes. Grades not present in the
 /// dictionary fall through to algorithm-driven scheduling (typical for
-/// `.easy`, and for `.hard`/`.good` when no step entry applies).
+/// `.easy`, and for `.hard`/`.good` when no step entry applies). Throws
+/// `FSRSError(.invalidParam)` when a step string is malformed (e.g. `"5x"`).
 public typealias LearningStepsStrategy = (
     _ params: FSRSParameters,
     _ state: CardState,
     _ curStep: Int
-) -> [Rating: LearningStepOutcome]
+) throws -> [Rating: LearningStepOutcome]
 
 /// Convert a step unit string (`"1m"`, `"10m"`, `"1h"`, `"1d"`) to minutes.
 /// Throws if the string is malformed.
@@ -65,11 +66,15 @@ private func jsRound(_ x: Double) -> Int {
 ///   current step (with a derived interval), and `.good` advances to the
 ///   next step (if any). `.easy` is never set — it always graduates to
 ///   Review via algorithm-driven scheduling.
+///
+/// Throws `FSRSError(.invalidParam)` if any consulted step string is
+/// malformed. This intentionally fails the review attempt rather than
+/// silently graduating the card on a typo'd config.
 public func basicLearningStepsStrategy(
     params: FSRSParameters,
     state: CardState,
     curStep: Int
-) -> [Rating: LearningStepOutcome] {
+) throws -> [Rating: LearningStepOutcome] {
     let steps: [String] = (state == .relearning || state == .review)
         ? params.relearningSteps
         : params.learningSteps
@@ -81,13 +86,12 @@ public func basicLearningStepsStrategy(
 
     if state == .review {
         let info = steps[max(0, curStep)]
-        guard let mins = try? convertStepUnitToMinutes(info) else { return [:] }
+        let mins = try convertStepUnitToMinutes(info)
         result[.again] = LearningStepOutcome(scheduledMinutes: mins, nextStep: 0)
         return result
     }
 
-    let firstStep = steps[0]
-    guard let firstMins = try? convertStepUnitToMinutes(firstStep) else { return [:] }
+    let firstMins = try convertStepUnitToMinutes(steps[0])
 
     // Hard interval:
     //   1 step  → round(first * 1.5)
@@ -96,7 +100,7 @@ public func basicLearningStepsStrategy(
     if stepsLength == 1 {
         hardInterval = jsRound(Double(firstMins) * 1.5)
     } else {
-        guard let secondMins = try? convertStepUnitToMinutes(steps[1]) else { return [:] }
+        let secondMins = try convertStepUnitToMinutes(steps[1])
         hardInterval = jsRound(Double(firstMins + secondMins) / 2.0)
     }
 
@@ -104,8 +108,8 @@ public func basicLearningStepsStrategy(
     result[.hard] = LearningStepOutcome(scheduledMinutes: hardInterval, nextStep: curStep)
 
     let nextIdx = curStep + 1
-    if nextIdx < stepsLength,
-       let nextMins = try? convertStepUnitToMinutes(steps[nextIdx]) {
+    if nextIdx < stepsLength {
+        let nextMins = try convertStepUnitToMinutes(steps[nextIdx])
         result[.good] = LearningStepOutcome(scheduledMinutes: nextMins, nextStep: nextIdx)
     }
 

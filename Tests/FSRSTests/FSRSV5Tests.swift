@@ -27,10 +27,10 @@ class FSRSV5Tests: XCTestCase {
         f = FSRS(parameters: .init(w: w))
     }
 
-    func testIvlHistory() {
+    func testIvlHistory() throws {
         var card = FSRSDefaults().createEmptyCard()
         var now = calendar.date(from: DateComponents(year: 2022, month: 12, day: 29, hour: 12, minute: 30))!
-        var schedulingCards = f.repeat(card: card, now: now)
+        var schedulingCards = try f.repeat(card: card, now: now)
 
         let ratings: [Rating] = [
             .good, .good, .good, .good, .good, .good,
@@ -60,16 +60,16 @@ class FSRSV5Tests: XCTestCase {
             let ivl = card.scheduledDays
             ivlHistory.append(Int(ivl))
             now = card.due
-            schedulingCards = f.repeat(card: card, now: now)
+            schedulingCards = try f.repeat(card: card, now: now)
         }
 
         XCTAssertEqual(ivlHistory, [0, 4, 14, 44, 125, 328, 0, 0, 7, 16, 34, 71, 142,])
     }
 
-    func testMemoryState() {
+    func testMemoryState() throws {
         var card = FSRSDefaults().createEmptyCard()
         var now = calendar.date(from: DateComponents(year: 2022, month: 12, day: 29, hour: 12, minute: 30))!
-        var schedulingCards = f.repeat(card: card, now: now)
+        var schedulingCards = try f.repeat(card: card, now: now)
 
         let ratings: [Rating] = [
             .again, .good, .good, .good, .good, .good,
@@ -79,7 +79,7 @@ class FSRSV5Tests: XCTestCase {
         for (index, rating) in ratings.enumerated() {
             card = schedulingCards[rating]!.card
             now.addTimeInterval(Double(intervals[index]) * 24 * 60 * 60) // Adding days as seconds
-            schedulingCards = f.repeat(card: card, now: now)
+            schedulingCards = try f.repeat(card: card, now: now)
         }
 
         let stability = schedulingCards[Rating.good]!.card.stability
@@ -88,10 +88,10 @@ class FSRSV5Tests: XCTestCase {
         XCTAssertEqual(difficulty, 7.0866, accuracy: 0.0001)
     }
 
-    func testFirstRepeat() {
+    func testFirstRepeat() throws {
         let card = FSRSDefaults().createEmptyCard()
         let now = calendar.date(from: DateComponents(year: 2022, month: 12, day: 29, hour: 12, minute: 30))!
-        let schedulingCards = f.repeat(card: card, now: now)
+        let schedulingCards = try f.repeat(card: card, now: now)
 
         var stability: [Double] = []
         var difficulty: [Double] = []
@@ -139,9 +139,9 @@ class RetrievabilityTests: XCTestCase {
         XCTAssertEqual(fsrs.getRetrievability(card: card, now: now).string, expected)
     }
 
-    func testRetrievabilityPercentageForReviewCards() {
+    func testRetrievabilityPercentageForReviewCards() throws {
         let card = FSRSDefaults().createEmptyCard(now: dateFormatter.date(from: "2023-12-01 04:00:00")!)
-        let sc = fsrs.repeat(card: card, now: dateFormatter.date(from: "2023-12-01 04:05:00")!)
+        let sc = try fsrs.repeat(card: card, now: dateFormatter.date(from: "2023-12-01 04:05:00")!)
         let expectedResults = ["100.00%", "100.00%", "100.00%", "89.83%"]
         let expectedNumbers = [1.0, 1.0, 1.0, 0.89832125]
 

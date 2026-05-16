@@ -71,6 +71,39 @@ final class FSRSGeneratorParametersV6Tests: XCTestCase {
         XCTAssertEqual(v6.sMin, FSRSDefaults.S_MIN_V6)
     }
 
+    func testCeilingFiniteForOutOfRangeInputs() {
+        // w[11] / w[13] feed into log(...) inside computeW17W18Ceiling. Pre-
+        // clamping inputs prevents NaN from a hostile `w` (or a tweaked test
+        // harness) poisoning the rest of the clamp table.
+        var w = FSRSDefaults.defaultWv6
+        w[11] = -1.0   // log(w[11]) would be NaN
+        w[13] = -0.5   // log(2^w[13] - 1) → log(negative) NaN
+        let ceiling = FSRSDefaults.computeW17W18Ceiling(
+            parameters: w,
+            numRelearningSteps: 2
+        )
+        XCTAssertTrue(ceiling.isFinite)
+        XCTAssertGreaterThanOrEqual(ceiling, 0.01)
+        XCTAssertLessThanOrEqual(ceiling, 2.0)
+    }
+
+    func testMalformedLearningStepThrowsOnReview() {
+        // Malformed step strings used to be silently swallowed by `try?` in
+        // basicLearningStepsStrategy, causing the v6 scheduler to graduate
+        // cards immediately. Now they propagate `FSRSError(.invalidParam)`
+        // through the throwing review chain.
+        let p = FSRSParameters(
+            w: FSRSDefaults.defaultWv6,
+            learningSteps: ["1m", "bogus"]
+        )
+        let f = FSRS(parameters: p)
+        let card = FSRSDefaults().createEmptyCard()
+        let now = Date()
+        XCTAssertThrowsError(try f.next(card: card, now: now, grade: .good)) { error in
+            XCTAssertTrue(error is FSRSError, "Expected FSRSError, got \(error)")
+        }
+    }
+
     func testFactorIsDerivedFromDecayInV6() {
         let v5 = FSRS(parameters: .init())
         XCTAssertEqual(v5.factor, 19.0 / 81.0, accuracy: 1e-12)

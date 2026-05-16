@@ -66,12 +66,12 @@ final class FSRSConcurrencyTests: XCTestCase {
             inputs.append(Input(card: card, now: now))
         }
 
-        let serial: [IPreview] = inputs.map { fSerial.repeat(card: $0.card, now: $0.now) }
+        let serial: [IPreview] = try inputs.map { try fSerial.repeat(card: $0.card, now: $0.now) }
 
         let parallel: [(Int, IPreview)] = await withTaskGroup(of: (Int, IPreview).self) { group in
             for (idx, input) in inputs.enumerated() {
                 group.addTask {
-                    (idx, fShared.repeat(card: input.card, now: input.now))
+                    (idx, try! fShared.repeat(card: input.card, now: input.now))
                 }
             }
             var collected: [(Int, IPreview)] = []
