@@ -4,72 +4,69 @@
 //  Created by nkq on 10/19/24.
 //
 
-import XCTest
+import Foundation
+import Testing
 @testable import FSRS
 
-class FSRSElapsedDaysTests: XCTestCase {
-    
-    var f: FSRS!
-    var currentLog: ReviewLog?
-    var card: Card!
-    var calendar = Calendar.current
+@Suite struct FSRSElapsedDaysTests {
 
-    override func setUp() {
-        super.setUp()
+    let f: FSRS
+    let calendar: Calendar
+    let initialCard: Card
+
+    init() {
         f = FSRS(parameters: .init())
-        calendar.timeZone = .init(secondsFromGMT: 0)!
+        var cal = Calendar.current
+        cal.timeZone = TimeZone(secondsFromGMT: 0)!
+        calendar = cal
         let components = DateComponents(year: 2023, month: 10, day: 18, hour: 14, minute: 32, second: 03)
-        let createDue = calendar.date(from: components)! // UTC 2023-10-18 14:32:03.370
-        card = FSRSDefaults().createEmptyCard(now: createDue)
+        let createDue = cal.date(from: components)!
+        initialCard = FSRSDefaults().createEmptyCard(now: createDue)
     }
 
-    func testFirstRepeatGood() throws {
+    @Test func firstRepeatGood() throws {
+        var card = initialCard
         var components = DateComponents(year: 2023, month: 11, day: 05, hour: 08, minute: 27, second: 02)
-        let firstDue = calendar.date(from: components)! // UTC 2023-11-05 08:27:02.605
+        let firstDue = calendar.date(from: components)!
         var sc = try f.repeat(card: card, now: firstDue)
-        
-        currentLog = sc[.good]?.log
-        XCTAssertEqual(currentLog?.elapsedDays, 0)
-        
+
+        var currentLog = sc[.good]?.log
+        #expect(currentLog?.elapsedDays == 0)
+
         card = sc[.good]?.card ?? card
 
         components = DateComponents(year: 2023, month: 11, day: 08, hour: 15, minute: 02, second: 09)
-        let secondDue = calendar.date(from: components)! // UTC 2023-11-08 15:02:09.791
-        XCTAssertNotNil(card)
-        
+        let secondDue = calendar.date(from: components)!
+
         sc = try f.repeat(card: card, now: secondDue)
         currentLog = sc[.again]?.log
-        
+
         var expectedElapsedDays: Double = Date.dateDiff(now: secondDue, pre: card.lastReview, unit: .days)
-        XCTAssertEqual(currentLog?.elapsedDays, expectedElapsedDays)
-        XCTAssertEqual(currentLog?.elapsedDays, 3)
-        
+        #expect(currentLog?.elapsedDays == expectedElapsedDays)
+        #expect(currentLog?.elapsedDays == 3)
+
         card = sc[.again]?.card ?? card
 
         components = DateComponents(year: 2023, month: 11, day: 08, hour: 15, minute: 02, second: 30)
-        let thirdDue = calendar.date(from: components)! // UTC 2023-11-08 15:02:30.799
-        XCTAssertNotNil(card)
+        let thirdDue = calendar.date(from: components)!
 
         sc = try f.repeat(card: card, now: thirdDue)
         currentLog = sc[.again]?.log
-        
+
         expectedElapsedDays = Date.dateDiff(now: thirdDue, pre: card.lastReview, unit: .days)
-        XCTAssertEqual(currentLog?.elapsedDays, expectedElapsedDays)
-        XCTAssertEqual(currentLog?.elapsedDays, 0)
-        
+        #expect(currentLog?.elapsedDays == expectedElapsedDays)
+        #expect(currentLog?.elapsedDays == 0)
+
         card = sc[.again]?.card ?? card
 
         components = DateComponents(year: 2023, month: 11, day: 08, hour: 15, minute: 04, second: 08)
-        let fourthDue = calendar.date(from: components)! // UTC 2023-11-08 15:04:08.739
-        XCTAssertNotNil(card)
+        let fourthDue = calendar.date(from: components)!
 
         sc = try f.repeat(card: card, now: fourthDue)
         currentLog = sc[.good]?.log
-        
+
         expectedElapsedDays = Date.dateDiff(now: fourthDue, pre: card.lastReview, unit: .days)
-        XCTAssertEqual(currentLog?.elapsedDays, expectedElapsedDays)
-        XCTAssertEqual(currentLog?.elapsedDays, 0)
-        
-        card = sc[.good]?.card ?? card
+        #expect(currentLog?.elapsedDays == expectedElapsedDays)
+        #expect(currentLog?.elapsedDays == 0)
     }
 }

@@ -1,57 +1,43 @@
 //
-//  BasicSchedulerTests.swift
+//  FSRSBasicSchedulerTests.swift
 //  FSRS
 //
 //  Created by nkq on 10/20/24.
 //
 
-
-import XCTest
+import Foundation
+import Testing
 @testable import FSRS
 
-class FSRSBasicSchedulerTests: XCTestCase {
-    var params: FSRSParameters!
-    var algorithm: FSRS!
-    var now: Date!
+@Suite struct FSRSBasicSchedulerTests {
 
-    override func setUp() {
-        super.setUp()
-        params = FSRSDefaults().generatorParameters()
-        algorithm = FSRS(parameters: params)
-        now = Date()
+    enum InitialState: String, CaseIterable, Sendable {
+        case new
+        case learning
+        case review
     }
 
-    func testStateNewExist() throws {
-        let card = FSRSDefaults().createEmptyCard(now: now)
-        let basicScheduler = BasicScheduler(card: card, reviewTime: now, algorithm: algorithm)
-        let preview = try basicScheduler.preview
-        let again = try basicScheduler.review(.again)
-        let hard = try basicScheduler.review(.hard)
-        let good = try basicScheduler.review(.good)
-        let easy = try basicScheduler.review(.easy)
-
-        let expectedPreview: [Rating: Card] = [
-            .again: again.card,
-            .hard: hard.card,
-            .good: good.card,
-            .easy: easy.card
-        ]
-
-        // Check that preview matches expected structure
-        XCTAssertEqual(preview.recordLog[.again]?.card, expectedPreview[.again])
-        XCTAssertEqual(preview.recordLog[.good]?.card, expectedPreview[.good])
-        XCTAssertEqual(preview.recordLog[.easy]?.card, expectedPreview[.easy])
-        XCTAssertEqual(preview.recordLog[.hard]?.card, expectedPreview[.hard])
-
-        for item in preview.recordLog {
-            let expectedCard = try basicScheduler.review(item.value.log.rating)
-            XCTAssertEqual(item.value, expectedCard)
+    /// Build the starting card for each scenario. `new` is a fresh card;
+    /// `learning` is a fresh card after one `.again` review; `review` is a
+    /// fresh card after one `.easy` review.
+    private static func makeCard(_ state: InitialState, now: Date, algorithm: FSRS) throws -> Card {
+        let empty = FSRSDefaults().createEmptyCard(now: now)
+        switch state {
+        case .new:
+            return empty
+        case .learning:
+            return try BasicScheduler(card: empty, reviewTime: now, algorithm: algorithm).review(.again).card
+        case .review:
+            return try BasicScheduler(card: empty, reviewTime: now, algorithm: algorithm).review(.easy).card
         }
     }
 
-    func testStateLearningExist() throws {
-        let cardByNew = FSRSDefaults().createEmptyCard(now: now)
-        let card = try BasicScheduler(card: cardByNew, reviewTime: now, algorithm: algorithm).review(.again).card
+    @Test(arguments: InitialState.allCases)
+    func previewMatchesPerGradeReview(initialState: InitialState) throws {
+        let params = FSRSDefaults().generatorParameters()
+        let algorithm = FSRS(parameters: params)
+        let now = Date()
+        let card = try Self.makeCard(initialState, now: now, algorithm: algorithm)
         let basicScheduler = BasicScheduler(card: card, reviewTime: now, algorithm: algorithm)
 
         let preview = try basicScheduler.preview
@@ -60,52 +46,21 @@ class FSRSBasicSchedulerTests: XCTestCase {
         let good = try basicScheduler.review(.good)
         let easy = try basicScheduler.review(.easy)
 
-        let expectedPreview: [Rating: Card] = [
+        let expected: [Rating: Card] = [
             .again: again.card,
             .hard: hard.card,
             .good: good.card,
-            .easy: easy.card
+            .easy: easy.card,
         ]
 
-        // Check that preview matches expected structure
-        XCTAssertEqual(preview.recordLog[.again]?.card, expectedPreview[.again])
-        XCTAssertEqual(preview.recordLog[.good]?.card, expectedPreview[.good])
-        XCTAssertEqual(preview.recordLog[.easy]?.card, expectedPreview[.easy])
-        XCTAssertEqual(preview.recordLog[.hard]?.card, expectedPreview[.hard])
+        #expect(preview.recordLog[.again]?.card == expected[.again])
+        #expect(preview.recordLog[.good]?.card == expected[.good])
+        #expect(preview.recordLog[.easy]?.card == expected[.easy])
+        #expect(preview.recordLog[.hard]?.card == expected[.hard])
 
         for item in preview.recordLog {
-            let expectedCard = try basicScheduler.review(item.value.log.rating)
-            XCTAssertEqual(item.value, expectedCard)
-        }
-    }
-
-    func testStateReviewExist() throws {
-        let cardByNew = FSRSDefaults().createEmptyCard(now: now)
-        let card = try BasicScheduler(card: cardByNew, reviewTime: now, algorithm: algorithm).review(.easy).card
-        let basicScheduler = BasicScheduler(card: card, reviewTime: now, algorithm: algorithm)
-
-        let preview = try basicScheduler.preview
-        let again = try basicScheduler.review(.again)
-        let hard = try basicScheduler.review(.hard)
-        let good = try basicScheduler.review(.good)
-        let easy = try basicScheduler.review(.easy)
-
-        let expectedPreview: [Rating: Card] = [
-            .again: again.card,
-            .hard: hard.card,
-            .good: good.card,
-            .easy: easy.card
-        ]
-
-        // Check that preview matches expected structure
-        XCTAssertEqual(preview.recordLog[.again]?.card, expectedPreview[.again])
-        XCTAssertEqual(preview.recordLog[.good]?.card, expectedPreview[.good])
-        XCTAssertEqual(preview.recordLog[.easy]?.card, expectedPreview[.easy])
-        XCTAssertEqual(preview.recordLog[.hard]?.card, expectedPreview[.hard])
-
-        for item in preview.recordLog {
-            let expectedCard = try basicScheduler.review(item.value.log.rating)
-            XCTAssertEqual(item.value, expectedCard)
+            let expectedItem = try basicScheduler.review(item.value.log.rating)
+            #expect(item.value == expectedItem)
         }
     }
 }

@@ -6,17 +6,17 @@
 //  so the Swift port stays bit-comparable to ts-fsrs.
 //
 
-import XCTest
+import Foundation
+import Testing
 @testable import FSRS
 
-final class FSRSV6Tests: XCTestCase {
-    var calendar: Calendar = {
+@Suite struct FSRSV6Tests {
+    let calendar: Calendar = {
         var c = Calendar.current
-        c.timeZone = .init(secondsFromGMT: 0)!
+        c.timeZone = TimeZone(secondsFromGMT: 0)!
         return c
     }()
 
-    // Default v6 weights (matches FSRSDefaults.defaultWv6).
     let w: [Double] = [
         0.212, 1.2931, 2.3065, 8.2956, 6.4133,
         0.8334, 3.0194, 0.001, 1.8722, 0.1666,
@@ -27,19 +27,19 @@ final class FSRSV6Tests: XCTestCase {
 
     // MARK: - Version detection
 
-    func testVersionDetection() {
+    @Test func versionDetection() {
         let v5 = FSRS(parameters: .init())
-        XCTAssertEqual(v5.version, .v5, "Default (no w) is v5")
+        #expect(v5.version == .v5, "Default (no w) is v5")
 
         let v6 = FSRS(parameters: .init(w: w))
-        XCTAssertEqual(v6.version, .v6, "21-length w is v6")
+        #expect(v6.version == .v6, "21-length w is v6")
 
-        XCTAssertEqual(FSRSDefaults.defaultWv6.count, 21)
+        #expect(FSRSDefaults.defaultWv6.count == 21)
     }
 
-    // MARK: - First repeat (matches ts-fsrs FSRS-6.test 'first repeat')
+    // MARK: - First repeat
 
-    func testFirstRepeat() throws {
+    @Test func firstRepeat() throws {
         let f = FSRS(parameters: .init(w: w))
         let card = FSRSDefaults().createEmptyCard()
         let now = calendar.date(from: DateComponents(year: 2022, month: 12, day: 29, hour: 12, minute: 30))!
@@ -61,21 +61,20 @@ final class FSRSV6Tests: XCTestCase {
             states.append(c.state)
         }
 
-        XCTAssertEqual(stability, [0.212, 1.2931, 2.3065, 8.2956])
-        // Difficulty rounded to 8 places per algorithm.toFixedNumber(8).
-        XCTAssertEqual(difficulty[0], 6.4133, accuracy: 1e-7)
-        XCTAssertEqual(difficulty[1], 5.11217071, accuracy: 1e-7)
-        XCTAssertEqual(difficulty[2], 2.11810397, accuracy: 1e-7)
-        XCTAssertEqual(difficulty[3], 1.0, accuracy: 1e-7)
-        XCTAssertEqual(reps, [1, 1, 1, 1])
-        XCTAssertEqual(lapses, [0, 0, 0, 0])
-        XCTAssertEqual(scheduledDays, [0, 0, 0, 8])
-        XCTAssertEqual(states, [.learning, .learning, .learning, .review])
+        #expect(stability == [0.212, 1.2931, 2.3065, 8.2956])
+        expectClose(difficulty[0], 6.4133, 1e-7)
+        expectClose(difficulty[1], 5.11217071, 1e-7)
+        expectClose(difficulty[2], 2.11810397, 1e-7)
+        expectClose(difficulty[3], 1.0, 1e-7)
+        #expect(reps == [1, 1, 1, 1])
+        #expect(lapses == [0, 0, 0, 0])
+        #expect(scheduledDays == [0, 0, 0, 8])
+        #expect(states == [.learning, .learning, .learning, .review])
     }
 
-    // MARK: - Interval history (matches ts-fsrs FSRS-6.test 'ivl_history')
+    // MARK: - Interval history
 
-    func testIvlHistory() throws {
+    @Test func ivlHistory() throws {
         let f = FSRS(parameters: .init(w: w))
         var card = FSRSDefaults().createEmptyCard()
         var now = calendar.date(from: DateComponents(year: 2022, month: 12, day: 29, hour: 12, minute: 30))!
@@ -88,22 +87,21 @@ final class FSRSV6Tests: XCTestCase {
 
         var ivlHistory: [Int] = []
         for rating in ratings {
-            // Cross-check: rollback round-trips, and `next(...)` agrees with `repeat(...)[grade]`.
             for check in [Rating.again, .hard, .good, .easy] {
                 let rollback = try f.rollback(
                     card: schedulingCards[check]!.card,
                     log: schedulingCards[check]!.log
                 )
-                XCTAssertEqual(rollback, card)
+                #expect(rollback == card)
 
                 let elapsed = card.lastReview != nil
                     ? Date.dateDiff(now: now, pre: card.lastReview, unit: .days)
                     : 0
-                XCTAssertEqual(schedulingCards[check]!.log.elapsedDays, elapsed)
+                #expect(schedulingCards[check]!.log.elapsedDays == elapsed)
 
                 let tempF = FSRS(parameters: .init(w: w))
                 let next = try tempF.next(card: card, now: now, grade: check)
-                XCTAssertEqual(schedulingCards[check], next)
+                #expect(schedulingCards[check] == next)
             }
 
             card = schedulingCards[rating]!.card
@@ -112,7 +110,7 @@ final class FSRSV6Tests: XCTestCase {
             schedulingCards = try f.repeat(card: card, now: now)
         }
 
-        XCTAssertEqual(ivlHistory, [0, 2, 11, 46, 163, 498, 0, 0, 2, 4, 7, 12, 21])
+        #expect(ivlHistory == [0, 2, 11, 46, 163, 498, 0, 0, 2, 4, 7, 12, 21])
     }
 
     // MARK: - Memory state oracles
@@ -131,39 +129,75 @@ final class FSRSV6Tests: XCTestCase {
         return card
     }
 
-    func testMemoryStateShortTerm() throws {
+    @Test func memoryStateShortTerm() throws {
         let card = try runMemoryStateSequence(enableShortTerm: true)
-        XCTAssertEqual(card.stability, 53.62691, accuracy: 1e-4)
-        XCTAssertEqual(card.difficulty, 6.3574867, accuracy: 1e-4)
+        expectClose(card.stability, 53.62691, 1e-4)
+        expectClose(card.difficulty, 6.3574867, 1e-4)
     }
 
-    func testMemoryStateLongTerm() throws {
+    @Test func memoryStateLongTerm() throws {
         let card = try runMemoryStateSequence(enableShortTerm: false)
-        XCTAssertEqual(card.stability, 53.335106, accuracy: 1e-4)
-        XCTAssertEqual(card.difficulty, 6.3574867, accuracy: 1e-4)
+        expectClose(card.stability, 53.335106, 1e-4)
+        expectClose(card.difficulty, 6.3574867, 1e-4)
     }
 
     // MARK: - Forgetting curve uses learnable decay
 
-    func testForgettingCurveUsesLearnableDecay() {
-        // Both versions cross R=0.9 at t=s by construction. The shapes differ:
-        // v6's smaller |decay| gives a flatter curve — at t > s, v6 retains
-        // *more* than v5 (longer tail). At t < s, v6 forgets faster.
+    @Test func forgettingCurveUsesLearnableDecay() {
         let v5 = FSRS(parameters: .init())
         let v6 = FSRS(parameters: .init(w: w))
 
-        XCTAssertEqual(v5.forgettingCurve(elapsedDays: 1, stability: 1), 0.9, accuracy: 1e-7)
-        XCTAssertEqual(v6.forgettingCurve(elapsedDays: 1, stability: 1), 0.9, accuracy: 1e-4)
+        expectClose(v5.forgettingCurve(elapsedDays: 1, stability: 1), 0.9, 1e-7)
+        expectClose(v6.forgettingCurve(elapsedDays: 1, stability: 1), 0.9, 1e-4)
 
-        // 10 days into a stability-1 card: v6's flatter tail keeps R higher.
-        XCTAssertGreaterThan(
-            v6.forgettingCurve(elapsedDays: 10, stability: 1),
-            v5.forgettingCurve(elapsedDays: 10, stability: 1)
-        )
+        #expect(v6.forgettingCurve(elapsedDays: 10, stability: 1) > v5.forgettingCurve(elapsedDays: 10, stability: 1))
 
-        // Different decays imply different factors.
-        XCTAssertNotEqual(v5.factor, v6.factor)
-        XCTAssertEqual(v5.decay, -0.5)
-        XCTAssertEqual(v6.decay, -0.1542)
+        #expect(v5.factor != v6.factor)
+        #expect(v5.decay == -0.5)
+        #expect(v6.decay == -0.1542)
+    }
+
+    // MARK: - Learning steps ≥1 day
+
+    /// Steps ≥1440 minutes (1 day) take a different branch in
+    /// `BasicSchedulerV6.applyLearningSteps`: the card goes to `.review` and
+    /// `scheduledDays` is derived from `mins / 1440` rather than the
+    /// algorithm's `nextInterval`. With `learningSteps: ["1m", "2d"]`, a fresh
+    /// card + `.good` advances to step index 1 (the 2d step), which exceeds
+    /// the 1440-minute threshold.
+    @Test func longLearningStepGraduatesToReviewWithScheduledDays() throws {
+        let f = FSRS(parameters: .init(
+            w: w,
+            enableFuzz: false,
+            learningSteps: ["1m", "2d"]
+        ))
+        let card = FSRSDefaults().createEmptyCard()
+        let now = calendar.date(from: DateComponents(year: 2024, month: 1, day: 1, hour: 12))!
+
+        // .good on a new card targets steps[1] = "2d" → 2880 minutes,
+        // hitting the `mins >= 1440` branch.
+        let item = try f.next(card: card, now: now, grade: .good)
+        #expect(item.card.state == .review)
+        #expect(item.card.scheduledDays == 2)
+        // `learningSteps` is preserved from `info.nextStep` (step that was
+        // consumed), not reset to 0 — verifies the ≥1d branch.
+        #expect(item.card.learningSteps == 1)
+    }
+
+    /// Boundary: mins == 1440 exactly is still the ≥1d branch.
+    @Test func singleOneDayLearningStepGraduates() throws {
+        let f = FSRS(parameters: .init(
+            w: w,
+            enableFuzz: false,
+            learningSteps: ["1d"]
+        ))
+        let card = FSRSDefaults().createEmptyCard()
+        let now = calendar.date(from: DateComponents(year: 2024, month: 1, day: 1, hour: 12))!
+
+        // For a single-step config + .again, curStep=0 wraps to the same step.
+        // .again schedules 1440 mins → mins >= 1440 branch.
+        let item = try f.next(card: card, now: now, grade: .again)
+        #expect(item.card.state == .review)
+        #expect(item.card.scheduledDays == 1)
     }
 }

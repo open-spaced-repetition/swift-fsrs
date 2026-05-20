@@ -6,13 +6,14 @@
 //  out across many `Task`s, and the public value types conform to `Sendable`.
 //
 
-import XCTest
+import Foundation
+import Testing
 @testable import FSRS
 
-final class FSRSConcurrencyTests: XCTestCase {
+@Suite struct FSRSConcurrencyTests {
     /// Compile-time assertion: the listed types must be `Sendable`. If a future
     /// change adds non-Sendable state to one of them, this stops compiling.
-    func testPublicTypesAreSendable() {
+    @Test func publicTypesAreSendable() {
         func _requireSendable<T: Sendable>(_: T.Type) {}
         _requireSendable(Card.self)
         _requireSendable(ReviewLog.self)
@@ -34,7 +35,7 @@ final class FSRSConcurrencyTests: XCTestCase {
     /// `FSRS` instance with fuzz enabled. Compares to a serial baseline. If
     /// any per-call state ever leaks back onto the algorithm instance (the
     /// pre-refactor `seed` race), this catches it.
-    func testConcurrentRepeatMatchesSerialBaseline() async throws {
+    @Test func concurrentRepeatMatchesSerialBaseline() async throws {
         let params = FSRSParameters(enableFuzz: true)
         let fSerial = FSRS(parameters: params)
         let fShared = FSRS(parameters: params)
@@ -43,8 +44,6 @@ final class FSRSConcurrencyTests: XCTestCase {
         calendar.timeZone = TimeZone(secondsFromGMT: 0)!
         let baseDate = calendar.date(from: DateComponents(year: 2024, month: 1, day: 1))!
 
-        // Build a population of distinct cards. Spread `reps`, stability, and
-        // review time so each call hits a different seed.
         struct Input: Sendable {
             let card: Card
             let now: Date
@@ -81,19 +80,19 @@ final class FSRSConcurrencyTests: XCTestCase {
             return collected
         }
 
-        XCTAssertEqual(parallel.count, serial.count)
+        #expect(parallel.count == serial.count)
         let parallelSorted = parallel.sorted { $0.0 < $1.0 }.map { $0.1 }
 
         for (i, (s, p)) in zip(serial, parallelSorted).enumerated() {
             for grade in [Rating.again, .hard, .good, .easy] {
-                XCTAssertEqual(s[grade], p[grade], "mismatch at index \(i) grade \(grade)")
+                #expect(s[grade] == p[grade], "mismatch at index \(i) grade \(grade)")
             }
         }
     }
 
     /// Same idea for `next`, exercising the rating-specific path that today
     /// reads the seed inside `nextInterval`/`applyFuzz`.
-    func testConcurrentNextMatchesSerialBaseline() async throws {
+    @Test func concurrentNextMatchesSerialBaseline() async throws {
         let params = FSRSParameters(enableFuzz: true)
         let fSerial = FSRS(parameters: params)
         let fShared = FSRS(parameters: params)
@@ -147,10 +146,10 @@ final class FSRSConcurrencyTests: XCTestCase {
             return collected
         }
 
-        XCTAssertEqual(parallel.count, serial.count)
+        #expect(parallel.count == serial.count)
         let parallelSorted = parallel.sorted { $0.0 < $1.0 }.map { $0.1 }
         for (i, (s, p)) in zip(serial, parallelSorted).enumerated() {
-            XCTAssertEqual(s, p, "mismatch at index \(i)")
+            #expect(s == p, "mismatch at index \(i)")
         }
     }
 }
