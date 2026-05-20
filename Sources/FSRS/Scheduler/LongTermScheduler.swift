@@ -119,10 +119,10 @@ class LongTermScheduler: AbstractScheduler {
         _ nextEasy: inout Card,
         interval: Double
     ) {
-        let againInterval = algorithm.nextInterval(s: nextAgain.stability, elapsedDays: interval)
-        let hardInterval = algorithm.nextInterval(s: nextHard.stability, elapsedDays: interval)
-        let goodInterval = algorithm.nextInterval(s: nextGood.stability, elapsedDays: interval)
-        let easyInterval = algorithm.nextInterval(s: nextEasy.stability, elapsedDays: interval)
+        let againInterval = algorithm.nextInterval(s: nextAgain.stability, elapsedDays: interval, seed: seed)
+        let hardInterval = algorithm.nextInterval(s: nextHard.stability, elapsedDays: interval, seed: seed)
+        let goodInterval = algorithm.nextInterval(s: nextGood.stability, elapsedDays: interval, seed: seed)
+        let easyInterval = algorithm.nextInterval(s: nextEasy.stability, elapsedDays: interval, seed: seed)
         
         
         let newAgainInterval = min(againInterval, hardInterval)

@@ -6,13 +6,13 @@
 
 import Foundation
 
-public struct IPreview {
+public struct IPreview: Sendable {
     var recordLog: RecordLog
-    
+
     init(recordLog: RecordLog) {
         self.recordLog = recordLog
     }
-    
+
     public subscript(rating: Rating) -> RecordLogItem? {
         get {
             recordLog[rating]
@@ -33,14 +33,14 @@ public protocol IScheduler {
  *
  * @template T - The type of the result returned by the `recordLogHandler` function.
  */
-public struct RescheduleOptions {
+public struct RescheduleOptions: Sendable {
     /**
      * A function that handles recording the log.
      *
      * @param recordLog - The log to be recorded.
      * @returns The result of recording the log.
      */
-    var recordLogHandler: ((_ recordLog: RecordLogItem?) -> RecordLogItem?)?
+    var recordLogHandler: (@Sendable (_ recordLog: RecordLogItem?) -> RecordLogItem?)?
 
     /**
      * A function that defines the order of reviews.
@@ -48,7 +48,7 @@ public struct RescheduleOptions {
      * @param a - The first FSRSHistory object.
      * @param b - The second FSRSHistory object.
      */
-    var reviewsOrderBy: ((_ a: ReviewLog, _ b: ReviewLog) -> Bool)?
+    var reviewsOrderBy: (@Sendable (_ a: ReviewLog, _ b: ReviewLog) -> Bool)?
 
     /**
      * Indicating whether to skip manual steps.
@@ -71,7 +71,7 @@ public struct RescheduleOptions {
     var firstCard: Card?
 }
 
-public struct IReschedule: Equatable {
+public struct IReschedule: Equatable, Sendable {
     var collections: [RecordLogItem?]
     var rescheduleItem: RecordLogItem?
 }

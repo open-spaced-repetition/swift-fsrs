@@ -324,8 +324,10 @@ class LongTermSchedulerTests: XCTestCase {
         for i in 0..<grades.count {
             let grade = grades[i]
             let enable = shortTerm[i]
-            algorithm.parameters.enableShortTerm = enable
-            let record = (try algorithm.repeat(card: card, now: now))[grade]
+            var iterParams: FSRSParameters = params
+            iterParams.enableShortTerm = enable
+            let iterAlgorithm = FSRS(parameters: iterParams)
+            let record = try iterAlgorithm.repeat(card: card, now: now)[grade]
             var tempParam = FSRSDefaults().generatorParameters(props: params)
             tempParam.enableShortTerm = enable
             let next = try! FSRS(parameters: tempParam).next(card: card, now: now, grade: grade)

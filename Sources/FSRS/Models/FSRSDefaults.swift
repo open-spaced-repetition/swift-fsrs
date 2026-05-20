@@ -11,7 +11,7 @@ import Foundation
 /// - `.v5` — 19-element `w` (legacy default, frozen for parity with existing tests).
 /// - `.v6` — 21-element `w` (FSRS-6.0). `w[19]` is the short-term last-stability
 ///   exponent; `w[20]` is the learnable decay (defaults to 0.1542).
-public enum FSRSAlgorithmVersion: Equatable {
+public enum FSRSAlgorithmVersion: Equatable, Sendable {
     case v5
     case v6
 
@@ -23,7 +23,7 @@ public enum FSRSAlgorithmVersion: Equatable {
     }
 }
 
-public class FSRSDefaults {
+public final class FSRSDefaults: Sendable {
     /// Lower bound for stability under FSRS-5 semantics.
     static let S_MIN = 0.01
     /// Lower bound for stability under FSRS-6 semantics (matches upstream ts-fsrs).
@@ -104,8 +104,8 @@ public class FSRSDefaults {
         return FSRSHelper.clamp(value.toFixedNumber(8), 0.01, 2.0)
     }
 
-    var defaultRequestRetention = 0.9
-    var defaultMaximumInterval = 36500.0
+    let defaultRequestRetention = 0.9
+    let defaultMaximumInterval = 36500.0
     let defaultW = [
         0.40255, 1.18385, 3.173, 15.69105, 7.1949,
         0.5345, 1.4604, 0.0046, 1.54575, 0.1192,
@@ -121,15 +121,15 @@ public class FSRSDefaults {
         0.6014, 1.8729, 0.5425, 0.0912, 0.0658,
         FSRS6_DEFAULT_DECAY,
     ]
-    var defaultEnableFuzz = false
-    var defaultEnableShortTerm = true
+    let defaultEnableFuzz = false
+    let defaultEnableShortTerm = true
 
     /// Default learning steps used by v6 schedulers (no effect under v5).
     public static let defaultLearningSteps: [String] = ["1m", "10m"]
     /// Default relearning steps used by v6 schedulers (no effect under v5).
     public static let defaultRelearningSteps: [String] = ["10m"]
 
-    var FSRSVersion: String = "v5.1.0 using FSRS-5.0"
+    let FSRSVersion: String = "v5.1.0 using FSRS-5.0"
 
     func generatorParameters(props: FSRSParameters? = nil) -> FSRSParameters {
         var w = defaultW

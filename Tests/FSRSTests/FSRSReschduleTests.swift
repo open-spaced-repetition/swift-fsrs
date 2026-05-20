@@ -504,8 +504,8 @@ class FSRSReschduleTests: XCTestCase {
         ])
 
         // Switch to long-term scheduler
-        f.parameters.enableShortTerm = false
-        let results = try! f.reschedule(
+        let fLongTerm = FSRS(parameters: .init(enableShortTerm: false))
+        let results = try! fLongTerm.reschedule(
             currentCard: FSRSDefaults().createEmptyCard(),
             reviews: reviews,
             options: .init(skipManual: false)

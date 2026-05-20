@@ -28,7 +28,8 @@ class BasicScheduler: AbstractScheduler {
         case .easy:
             let easyInterval = algorithm.nextInterval(
                 s: next.stability,
-                elapsedDays: current.elapsedDays
+                elapsedDays: current.elapsedDays,
+                seed: seed
             )
             next.scheduledDays = Double(easyInterval)
             next.due = Date.dateScheduler(now: reviewTime, t: Double(easyInterval), unit: .days)
@@ -56,7 +57,8 @@ class BasicScheduler: AbstractScheduler {
         case .good:
             let goodInterval = algorithm.nextInterval(
                 s: next.stability,
-                elapsedDays: interval
+                elapsedDays: interval,
+                seed: seed
             )
             next.scheduledDays = Double(goodInterval)
             next.due = Date.dateScheduler(now: reviewTime, t: Double(goodInterval), unit: .days)
@@ -68,11 +70,13 @@ class BasicScheduler: AbstractScheduler {
             )
             let goodInterval = algorithm.nextInterval(
                 s: goodStability,
-                elapsedDays: interval
+                elapsedDays: interval,
+                seed: seed
             )
             let easyInterval = max(algorithm.nextInterval(
                 s: next.stability,
-                elapsedDays: interval
+                elapsedDays: interval,
+                seed: seed
             ), goodInterval + 1)
             next.scheduledDays = Double(easyInterval)
             next.due = Date.dateScheduler(now: reviewTime, t: Double(easyInterval), unit: .days)
@@ -169,15 +173,15 @@ class BasicScheduler: AbstractScheduler {
         interval: Double
     ) {
         var hardInterval = algorithm.nextInterval(
-            s: nextHard.stability, elapsedDays: interval
+            s: nextHard.stability, elapsedDays: interval, seed: seed
         )
         var goodInterval = algorithm.nextInterval(
-            s: nextGood.stability, elapsedDays: interval
+            s: nextGood.stability, elapsedDays: interval, seed: seed
         )
         hardInterval = min(hardInterval, goodInterval)
         goodInterval = max(goodInterval, hardInterval + 1)
         let easyInteval = max(
-            algorithm.nextInterval(s: nextEasy.stability, elapsedDays: interval),
+            algorithm.nextInterval(s: nextEasy.stability, elapsedDays: interval, seed: seed),
             goodInterval + 1
         )
         nextAgain.scheduledDays = 0

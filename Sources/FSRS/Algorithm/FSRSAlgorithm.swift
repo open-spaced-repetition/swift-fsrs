@@ -7,8 +7,13 @@
 import Foundation
 /**
  * @see https://github.com/open-spaced-repetition/fsrs4anki/wiki/The-Algorithm#fsrs-45
+ *
+ * Immutable after `init`. All stored state is `let`; per-call randomness (the
+ * fuzz seed) is threaded through method parameters rather than held as
+ * instance state. This lets a single instance be shared across tasks/actors
+ * without data races — see `FSRSAlgorithm: @unchecked Sendable` below.
  */
-public class FSRSAlgorithm {
+public class FSRSAlgorithm: @unchecked Sendable {
     /// Algorithm version inferred from the length of the active `w` vector.
     /// Drives version-dispatched formulas (decay, factor, S_MIN, init difficulty
     /// clamp location, short-term stability shape).
@@ -48,56 +53,47 @@ public class FSRSAlgorithm {
 
     let defaults = FSRSDefaults()
 
-    internal var parameters: FSRSParameters
+    public let parameters: FSRSParameters
 
-    var params: FSRSParameters {
-        get {
-            parameters
-        }
-        set {
-            processparameters(newValue)
-        }
-    }
+    /// Read-only accessor preserved for test ergonomics. Parameters are now
+    /// immutable — to change them, construct a new `FSRS` instance.
+    public var params: FSRSParameters { parameters }
 
-    func processparameters(_ parameters: FSRSParameters) {
-        let parameters = defaults.generatorParameters(props: parameters)
-        // Assign self.parameters BEFORE computing intervalModifier — for v6
-        // that derivation reads w[20] via `decay`, and the value depends on
-        // the migrated/clamped parameters, not the raw input.
-        if parameters != self.parameters {
-            self.parameters = parameters
-        }
-        if parameters.requestRetention.isFinite {
-            do {
-                intervalModifier = try calculateIntervalModifier(
-                    requestRetention: parameters.requestRetention
-                )
-            } catch {
-                print(error.localizedDescription)
-            }
-        }
-    }
-
-    var intervalModifier: Double = 1
-    var seed: String?
+    let intervalModifier: Double
 
     init(parameters: FSRSParameters) {
-        self.parameters = parameters
-        processparameters(parameters)
+        // Migrate / clamp the input once. Subsequent reads of `self.parameters`
+        // see the canonical, post-`generatorParameters` form.
+        let migrated = FSRSDefaults().generatorParameters(props: parameters)
+        self.parameters = migrated
+        // Compute intervalModifier from the migrated parameters. We need the
+        // version-dependent `decay` / `factor` here, which read `parameters`
+        // via the computed properties — hence the temporary instance below.
+        self.intervalModifier = Self.computeIntervalModifier(parameters: migrated)
     }
 
-    /**
-     * @see https://github.com/open-spaced-repetition/fsrs4anki/wiki/The-Algorithm#fsrs-45
-     *
-     * The formula used is: $$I(r,s) = (r^{\frac{1}{DECAY}} - 1) / FACTOR \times s$$
-     * @param request_retention 0<request_retention<=1,Requested retention rate
-     * @throws {Error} Requested retention rate should be in the range (0,1]
-     */
-    func calculateIntervalModifier(requestRetention: Double) throws -> Double {
-        guard requestRetention > 0 && requestRetention <= 1 else {
-            throw FSRSError(.invalidRetention, "Requested retention rate should be in the range (0,1]")
+    private static func computeIntervalModifier(parameters: FSRSParameters) -> Double {
+        let r = parameters.requestRetention
+        guard r.isFinite, r > 0, r <= 1 else {
+            // Preserve the prior behavior: invalid retention falls through to
+            // the default identity modifier and is logged.
+            if !r.isFinite {
+                return 1
+            }
+            print("Requested retention rate should be in the range (0,1]")
+            return 1
         }
-        let result = (pow(requestRetention, 1 / decay) - 1.0) / factor
+        // Mirror `decay` / `factor` getter logic without an instance.
+        let decay: Double
+        let factor: Double
+        if FSRSAlgorithmVersion.detect(parameters.w) == .v6 {
+            decay = -parameters.w[20]
+            factor = (exp(log(0.9) / decay) - 1.0).toFixedNumber(8)
+        } else {
+            decay = -0.5
+            factor = 19.0 / 81.0
+        }
+        let result = (pow(r, 1 / decay) - 1.0) / factor
         return result.toFixedNumber(8)
     }
 
@@ -143,11 +139,14 @@ public class FSRSAlgorithm {
 
     /**
      * If fuzzing is disabled or ivl is less than 2.5, it returns the original interval.
-     * @param {number} ivl - The interval to be fuzzed.
-     * @param {number} elapsed_days t days since the last review
-     * @return {number} - The fuzzed interval.
-     **/
-    func applyFuzz(ivl: Double, elapsedDays: Double) -> Int {
+     * - Parameters:
+     *   - ivl: The interval to be fuzzed.
+     *   - elapsedDays: t days since the last review.
+     *   - seed: Per-call PRNG seed produced by the scheduler. Threading it as
+     *     a parameter (rather than a stored property) keeps the algorithm
+     *     instance immutable across concurrent calls.
+     */
+    func applyFuzz(ivl: Double, elapsedDays: Double, seed: String?) -> Int {
         guard parameters.enableFuzz && ivl >= 2.5 else { return Int(round(ivl)) }
         let genetaor = alea(seed: seed)
         let fuzzFactor = genetaor.next()
@@ -160,13 +159,14 @@ public class FSRSAlgorithm {
     }
 
     /**
-     *   @see The formula used is : {@link FSRSAlgorithm.calculate_interval_modifier}
-     *   @param {number} s - Stability (interval when R=90%)
-     *   @param {number} elapsed_days t days since the last review
+     * - Parameters:
+     *   - s: Stability (interval when R=90%).
+     *   - elapsedDays: t days since the last review.
+     *   - seed: Per-call PRNG seed (forwarded to `applyFuzz`).
      */
-    func nextInterval(s: Double, elapsedDays: Double) -> Int {
+    func nextInterval(s: Double, elapsedDays: Double, seed: String?) -> Int {
         let newInterval = min(max(1, round(s * intervalModifier)), parameters.maximumInterval)
-        return applyFuzz(ivl: newInterval, elapsedDays: elapsedDays)
+        return applyFuzz(ivl: newInterval, elapsedDays: elapsedDays, seed: seed)
     }
 
     /**

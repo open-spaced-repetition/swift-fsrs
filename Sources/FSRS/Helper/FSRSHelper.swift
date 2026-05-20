@@ -7,7 +7,7 @@
 import Foundation
 
 class FSRSHelper {
-    struct FuzzRange {
+    struct FuzzRange: Sendable {
         let start: Double
         let end: Double
         let factor: Double
@@ -43,8 +43,8 @@ class FSRSHelper {
     }
 }
 
-public struct FSRSError: Error, Equatable {
-    enum Reason: String, Error {
+public struct FSRSError: Error, Equatable, Sendable {
+    enum Reason: String, Error, Sendable {
         case invalidInterval
         case invalidRating
         case invalidRetention
@@ -61,8 +61,8 @@ public struct FSRSError: Error, Equatable {
 }
 
 extension Date {
-    
-    enum TimeUnit: String, Codable {
+
+    enum TimeUnit: String, Codable, Sendable {
         case days
         case minutes
     }
