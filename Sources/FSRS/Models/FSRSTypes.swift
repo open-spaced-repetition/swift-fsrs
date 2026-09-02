@@ -40,7 +40,7 @@ public struct RescheduleOptions: Sendable {
      * @param recordLog - The log to be recorded.
      * @returns The result of recording the log.
      */
-    var recordLogHandler: (@Sendable (_ recordLog: RecordLogItem?) -> RecordLogItem?)?
+    public var recordLogHandler: (@Sendable (_ recordLog: RecordLogItem?) -> RecordLogItem?)?
 
     /**
      * A function that defines the order of reviews.
@@ -48,30 +48,51 @@ public struct RescheduleOptions: Sendable {
      * @param a - The first FSRSHistory object.
      * @param b - The second FSRSHistory object.
      */
-    var reviewsOrderBy: (@Sendable (_ a: ReviewLog, _ b: ReviewLog) -> Bool)?
+    public var reviewsOrderBy: (@Sendable (_ a: ReviewLog, _ b: ReviewLog) -> Bool)?
 
     /**
      * Indicating whether to skip manual steps.
      */
-    var skipManual: Bool = true
+    public var skipManual: Bool
 
     /**
      * Indicating whether to update the FSRS memory state.
      */
-    var updateMemoryState: Bool = false
+    public var updateMemoryState: Bool
 
     /**
      * The current date and time.
      */
-    var now: Date = Date()
+    public var now: Date
 
     /**
      * The input for the first card.
      */
-    var firstCard: Card?
+    public var firstCard: Card?
+
+    public init(
+        recordLogHandler: (@Sendable (_ recordLog: RecordLogItem?) -> RecordLogItem?)? = nil,
+        reviewsOrderBy: (@Sendable (_ a: ReviewLog, _ b: ReviewLog) -> Bool)? = nil,
+        skipManual: Bool = true,
+        updateMemoryState: Bool = false,
+        now: Date = Date(),
+        firstCard: Card? = nil
+    ) {
+        self.recordLogHandler = recordLogHandler
+        self.reviewsOrderBy = reviewsOrderBy
+        self.skipManual = skipManual
+        self.updateMemoryState = updateMemoryState
+        self.now = now
+        self.firstCard = firstCard
+    }
 }
 
 public struct IReschedule: Equatable, Sendable {
-    var collections: [RecordLogItem?]
-    var rescheduleItem: RecordLogItem?
+    public var collections: [RecordLogItem?]
+    public var rescheduleItem: RecordLogItem?
+
+    public init(collections: [RecordLogItem?], rescheduleItem: RecordLogItem?) {
+        self.collections = collections
+        self.rescheduleItem = rescheduleItem
+    }
 }

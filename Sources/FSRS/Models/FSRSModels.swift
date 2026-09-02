@@ -244,6 +244,38 @@ public struct FSRSParameters: Codable, Equatable, Sendable {
         self.relearningSteps = relearningSteps ?? FSRSDefaults.defaultRelearningSteps
     }
 
+    /// Construct canonical FSRS-6 parameters using the migration and clipping
+    /// behavior of `ts-fsrs@5.4.2` while leaving the legacy Swift initializer
+    /// unchanged for source and schedule compatibility.
+    public static func tsFSRS6Compatible(
+        requestRetention: Double? = nil,
+        maximumInterval: Double? = nil,
+        w: [Double]? = nil,
+        enableFuzz: Bool? = nil,
+        enableShortTerm: Bool? = nil,
+        learningSteps: [String]? = nil,
+        relearningSteps: [String]? = nil
+    ) -> FSRSParameters {
+        let defaults = FSRSDefaults()
+        let resolvedShortTerm = enableShortTerm ?? defaults.defaultEnableShortTerm
+        let resolvedLearningSteps = learningSteps ?? FSRSDefaults.defaultLearningSteps
+        let resolvedRelearningSteps = relearningSteps ?? FSRSDefaults.defaultRelearningSteps
+        let migratedWeights = defaults.migrateTSFSRS6Weights(
+            w,
+            numRelearningSteps: resolvedRelearningSteps.count,
+            enableShortTerm: resolvedShortTerm
+        )
+        return FSRSParameters(
+            requestRetention: requestRetention,
+            maximumInterval: maximumInterval,
+            w: migratedWeights,
+            enableFuzz: enableFuzz,
+            enableShortTerm: resolvedShortTerm,
+            learningSteps: resolvedLearningSteps,
+            relearningSteps: resolvedRelearningSteps
+        )
+    }
+
     enum CodingKeys: String, CodingKey {
         case requestRetention, maximumInterval, w, enableFuzz, enableShortTerm
         case learningSteps, relearningSteps

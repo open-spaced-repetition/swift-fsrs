@@ -330,7 +330,7 @@ public final class FSRS: FSRSAlgorithm, @unchecked Sendable {
         let processedCard = card.newCard
         let scheduledDay = processedCard.state == .new
         ? 0
-        : Date.dateDiff(now: now, pre: processedCard.lastReview, unit: .days)
+        : Date.dateDiff(now: now, pre: processedCard.due, unit: .days)
         let forgetLog = ReviewLog(
             rating: .manual,
             state: processedCard.state,

@@ -24,6 +24,8 @@ public enum FSRSAlgorithmVersion: Equatable, Sendable {
 }
 
 public final class FSRSDefaults: Sendable {
+    public init() {}
+
     /// Lower bound for stability under FSRS-5 semantics.
     static let S_MIN = 0.01
     /// Lower bound for stability under FSRS-6 semantics (matches upstream ts-fsrs).
@@ -32,6 +34,7 @@ public final class FSRSDefaults: Sendable {
 
     /// Default decay for fresh v6 models (canonical value from ts-fsrs).
     static let FSRS6_DEFAULT_DECAY = 0.1542
+    static let FSRS5_DEFAULT_DECAY = 0.5
 
     /// Default ceiling for `w[17]` and `w[18]` when relearning_steps is empty
     /// or has length ≤ 1. ts-fsrs derives a tighter ceiling from the relearning
@@ -67,15 +70,16 @@ public final class FSRSDefaults: Sendable {
         w17W18Ceiling: Double = W17_W18_CEILING,
         enableShortTerm: Bool = true
     ) -> [[Double]] {
-        let base = CLAMP_PARAMETERS
-            .prefix(17)
-            .map { $0 } + [
+        var firstSeventeen = CLAMP_PARAMETERS.prefix(17).map { $0 }
+        for index in 0..<4 {
+            firstSeventeen[index][0] = S_MIN_V6
+        }
+        return firstSeventeen + [
                 [0.0, w17W18Ceiling] /** short-term stability (exponent) */,
                 [0.0, w17W18Ceiling] /** short-term stability (exponent) */,
                 [enableShortTerm ? 0.01 : 0.0, 0.8] /** short-term last-stability (exponent) */,
                 [0.1, 0.8] /** decay */,
             ]
-        return base
     }
 
     /// Compute the dynamic `w17_w18_ceiling` from the relearning step count.
@@ -101,7 +105,8 @@ public final class FSRSDefaults: Sendable {
             log(pow(2.0, w13) - 1.0) +
             w14 * 0.3
         ) / Double(numRelearningSteps)
-        return FSRSHelper.clamp(value.toFixedNumber(8), 0.01, 2.0)
+        let ceiling = sqrt(max(value, 0)).toFixedNumber(8)
+        return FSRSHelper.clamp(ceiling, 0.01, 2.0)
     }
 
     let defaultRequestRetention = 0.9
@@ -191,6 +196,77 @@ public final class FSRSDefaults: Sendable {
         )
     }
 
+    /// Migrate and clip a weight vector with the semantics used by
+    /// `ts-fsrs@5.4.2`. This is intentionally separate from the legacy Swift
+    /// generator so existing 17/19-weight callers do not change behavior.
+    func migrateTSFSRS6Weights(
+        _ input: [Double]?,
+        numRelearningSteps: Int,
+        enableShortTerm: Bool
+    ) -> [Double] {
+        let source = input ?? Self.defaultWv6
+        var migrated: [Double]
+
+        switch source.count {
+        case 21:
+            migrated = clipTSFSRS6Weights(
+                source,
+                numRelearningSteps: numRelearningSteps,
+                enableShortTerm: enableShortTerm
+            )
+        case 19:
+            migrated = clipTSFSRS6Weights(
+                source,
+                numRelearningSteps: numRelearningSteps,
+                enableShortTerm: enableShortTerm
+            ) + [0, Self.FSRS5_DEFAULT_DECAY]
+        case 17:
+            migrated = clipTSFSRS6Weights(
+                source,
+                numRelearningSteps: numRelearningSteps,
+                enableShortTerm: enableShortTerm
+            )
+            migrated[4] = (migrated[5] * 2 + migrated[4]).toFixedNumber(8)
+            migrated[5] = (log(migrated[5] * 3 + 1) / 3).toFixedNumber(8)
+            migrated[6] = (migrated[6] + 0.5).toFixedNumber(8)
+            migrated += [0, 0, 0, Self.FSRS5_DEFAULT_DECAY]
+        default:
+            migrated = Self.defaultWv6
+        }
+
+        // ts-fsrs 5.4.2 clips once more after migration so transformed and
+        // appended values also satisfy the final 21-weight constraints.
+        return clipTSFSRS6Weights(
+            migrated,
+            numRelearningSteps: numRelearningSteps,
+            enableShortTerm: enableShortTerm
+        )
+    }
+
+    private func clipTSFSRS6Weights(
+        _ values: [Double],
+        numRelearningSteps: Int,
+        enableShortTerm: Bool
+    ) -> [Double] {
+        let normalized = values.map { $0.isNaN ? 0 : $0 }
+        let ceiling: Double
+        if normalized.count > 14 {
+            ceiling = Self.computeW17W18Ceiling(
+                parameters: normalized,
+                numRelearningSteps: numRelearningSteps
+            )
+        } else {
+            ceiling = Self.W17_W18_CEILING
+        }
+        let table = Self.clampParametersV6(
+            w17W18Ceiling: ceiling,
+            enableShortTerm: enableShortTerm
+        )
+        return normalized.enumerated().map { index, value in
+            FSRSHelper.clamp(value, table[index][0], table[index][1])
+        }
+    }
+
 
     /**
      * Create an empty card
@@ -222,7 +298,7 @@ public final class FSRSDefaults: Sendable {
      * const card: CardUnChecked = createEmptyCard(new Date(), cardAfterHandler);
      * ```
      */
-    func createEmptyCard(now: Date = Date(), afterHandler: ((Card) -> Card)? = nil) -> Card {
+    public func createEmptyCard(now: Date = Date(), afterHandler: ((Card) -> Card)? = nil) -> Card {
         let card = Card(due: now)
         return afterHandler?(card) ?? card
     }

@@ -35,7 +35,7 @@ public func convertStepUnitToMinutes(_ step: String) throws -> Int {
         throw FSRSError(.invalidParam, "Empty step unit")
     }
     let valuePart = String(step.dropLast())
-    guard let value = Int(valuePart), value >= 0 else {
+    guard let value = parseIntLikeJavaScript(valuePart), value >= 0 else {
         throw FSRSError(.invalidParam, "Invalid step value: \(step)")
     }
     switch last {
@@ -45,6 +45,28 @@ public func convertStepUnitToMinutes(_ step: String) throws -> Int {
     default:
         throw FSRSError(.invalidParam, "Invalid step unit: \(step), expected m/h/d")
     }
+}
+
+/// Mirror JavaScript's `parseInt(value, 10)` used by ts-fsrs. Step units are
+/// statically constrained in TypeScript, but runtime inputs may contain a
+/// decimal or suffix; parseInt consumes the leading signed integer portion.
+private func parseIntLikeJavaScript(_ value: String) -> Int? {
+    let trimmed = value.drop(while: { $0.isWhitespace })
+    guard !trimmed.isEmpty else { return nil }
+    var index = trimmed.startIndex
+    var sign = 1
+    if trimmed[index] == "+" || trimmed[index] == "-" {
+        if trimmed[index] == "-" { sign = -1 }
+        index = trimmed.index(after: index)
+    }
+    let digitStart = index
+    while index < trimmed.endIndex, trimmed[index].isNumber {
+        index = trimmed.index(after: index)
+    }
+    guard digitStart != index, let magnitude = Int(trimmed[digitStart..<index]) else {
+        return nil
+    }
+    return sign * magnitude
 }
 
 /// Match JavaScript `Math.round` semantics: half values round away from zero

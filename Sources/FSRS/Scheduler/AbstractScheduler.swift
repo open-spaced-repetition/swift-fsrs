@@ -43,7 +43,20 @@ class AbstractScheduler: IScheduler {
         self.current.lastReview = reviewTime
         self.current.elapsedDays = interval
         self.current.reps += 1
-        self.seed = "\(reviewTime.timeIntervalSince1970)_\(current.reps)_\(current.difficulty * current.stability)"
+        let reviewTimeMilliseconds = Int64(reviewTime.timeIntervalSince1970 * 1_000)
+        let memoryProduct = Self.javaScriptNumberString(current.difficulty * current.stability)
+        self.seed = "\(reviewTimeMilliseconds)_\(current.reps)_\(memoryProduct)"
+    }
+
+    /// Match the common JavaScript `Number#toString` cases used in the
+    /// ts-fsrs default seed. Swift includes `.0` for integral Doubles, which
+    /// changes the Alea stream even though the numeric value is identical.
+    private static func javaScriptNumberString(_ value: Double) -> String {
+        if value == 0 { return "0" }
+        if value.isFinite, value.rounded(.towardZero) == value, abs(value) < 1e21 {
+            return String(format: "%.0f", locale: Locale(identifier: "en_US_POSIX"), value)
+        }
+        return String(value)
     }
 
     func review(_ g: Rating) throws -> RecordLogItem {

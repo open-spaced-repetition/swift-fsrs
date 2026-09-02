@@ -48,4 +48,13 @@ import Testing
     func happyPath(input: String, expectedMinutes: Int) throws {
         #expect(try convertStepUnitToMinutes(input) == expectedMinutes)
     }
+
+    @Test(arguments: [
+        ("1.5h", 60),
+        ("1e2h", 60),
+        (" +12m", 12),
+    ])
+    func runtimeParsingMatchesTSFSRS(input: String, expectedMinutes: Int) throws {
+        #expect(try convertStepUnitToMinutes(input) == expectedMinutes)
+    }
 }

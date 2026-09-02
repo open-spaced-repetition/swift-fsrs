@@ -84,6 +84,69 @@ import Testing
         #expect(ceiling <= 2.0)
     }
 
+    @Test func multiStepCeilingMatchesTSFSRS542() {
+        var w = FSRSDefaults.defaultWv6
+        w[17] = 2
+        w[18] = 2
+        let p = FSRSDefaults().generatorParameters(props: .init(
+            w: w,
+            relearningSteps: ["1m", "10m"]
+        ))
+        expectClose(p.w[17], 0.60045935, 1e-9)
+        expectClose(p.w[18], 0.60045935, 1e-9)
+    }
+
+    @Test func v6InitialStabilityClampUsesTSMinimum() {
+        var w = FSRSDefaults.defaultWv6
+        for index in 0..<4 { w[index] = 0 }
+        let p = FSRSDefaults().generatorParameters(props: .init(w: w))
+        for index in 0..<4 { expectClose(p.w[index], 0.001, 1e-12) }
+    }
+
+    @Test func tsCompatibleFactoryDefaultsToV6WithoutChangingLegacyDefault() {
+        let legacy = FSRSParameters()
+        let compatible = FSRSParameters.tsFSRS6Compatible()
+        #expect(legacy.w.count == 19)
+        #expect(compatible.w == FSRSDefaults.defaultWv6)
+        #expect(FSRS(parameters: compatible).version == .v6)
+    }
+
+    @Test func tsCompatibleFactoryMigratesLegacyWeights() {
+        let raw19 = Array(repeating: 0.5, count: 19)
+        let migrated19 = FSRSParameters.tsFSRS6Compatible(w: raw19)
+        #expect(migrated19.w.count == 21)
+        expectClose(migrated19.w[19], 0.01, 1e-12)
+        expectClose(migrated19.w[20], 0.5, 1e-12)
+
+        let raw17 = Array(repeating: 0.5, count: 17)
+        let migrated17 = FSRSParameters.tsFSRS6Compatible(w: raw17)
+        #expect(migrated17.w.count == 21)
+        expectClose(migrated17.w[4], 2.0, 1e-12)
+        expectClose(migrated17.w[5], 0.30543024, 1e-12)
+        expectClose(migrated17.w[6], 1.0, 1e-12)
+        expectClose(migrated17.w[19], 0.01, 1e-12)
+        expectClose(migrated17.w[20], 0.5, 1e-12)
+    }
+
+    @Test func tsCompatibleFactoryFallsBackForInvalidLength() {
+        let migrated = FSRSParameters.tsFSRS6Compatible(w: Array(repeating: 0.5, count: 20))
+        #expect(migrated.w == FSRSDefaults.defaultWv6)
+    }
+
+    @Test func tsCompatibleFactoryNormalizesNonFiniteWeightsLikeTSFSRS() {
+        var nan = FSRSDefaults.defaultWv6
+        nan[0] = .nan
+        expectClose(FSRSParameters.tsFSRS6Compatible(w: nan).w[0], 0.001, 1e-12)
+
+        var positiveInfinity = FSRSDefaults.defaultWv6
+        positiveInfinity[0] = .infinity
+        expectClose(FSRSParameters.tsFSRS6Compatible(w: positiveInfinity).w[0], 100, 1e-12)
+
+        var negativeInfinity = FSRSDefaults.defaultWv6
+        negativeInfinity[0] = -.infinity
+        expectClose(FSRSParameters.tsFSRS6Compatible(w: negativeInfinity).w[0], 0.001, 1e-12)
+    }
+
     @Test func malformedLearningStepThrowsOnReview() {
         // Malformed step strings used to be silently swallowed by `try?` in
         // basicLearningStepsStrategy, causing the v6 scheduler to graduate
