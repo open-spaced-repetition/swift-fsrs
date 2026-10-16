@@ -30,6 +30,13 @@ public final class FSRSDefaults: Sendable {
     static let S_MIN_V6 = 0.001
     static let INIT_S_MAX = 100.0
 
+    /// Default calendar (gregorian, UTC) used for day boundary calculations.
+    public static var defaultCalendar: Calendar {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(secondsFromGMT: 0) ?? .autoupdatingCurrent
+        return calendar
+    }
+
     /// Default decay for fresh v6 models (canonical value from ts-fsrs).
     static let FSRS6_DEFAULT_DECAY = 0.1542
 
