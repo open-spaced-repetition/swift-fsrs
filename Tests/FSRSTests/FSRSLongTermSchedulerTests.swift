@@ -203,4 +203,33 @@ import Testing
         let retrievability2 = f.getRetrievability(card: card, now: viewDate).string
         #expect(retrievability2 == "100.00%")
     }
+
+    /// The long-term interval ordering (again < hard < good < easy) must be
+    /// chained, as in ts-fsrs: good is bumped against the *adjusted* hard
+    /// interval, and easy against the adjusted good one. With the FSRS-6
+    /// defaults a new card rated Again gets 1 day, so hard becomes 2 and good
+    /// must become 3. Oracle values come from ts-fsrs 5.4.2 with the same
+    /// parameters (FSRS-6 defaults, retention 0.9, no fuzz, no short-term).
+    @Test func intervalOrderingIsChainedV6() throws {
+        let f = FSRS(parameters: .init(
+            requestRetention: 0.9, w: FSRSDefaults.defaultWv6, enableFuzz: false, enableShortTerm: false
+        ))
+        var now = calendar.date(from: DateComponents(year: 2026, month: 10, day: 17))!
+        var card = FSRSDefaults().createEmptyCard(now: now)
+
+        let first = try f.repeat(card: card, now: now)
+        #expect([Rating.again, .hard, .good, .easy].map { Int(first[$0]!.card.scheduledDays) } == [1, 2, 3, 8])
+
+        let ratings: [Rating] = [
+            .good, .good, .good, .good, .good, .good,
+            .again, .again, .good, .good, .good, .good, .good,
+        ]
+        var ivlHistory: [Int] = []
+        for rating in ratings {
+            card = try f.next(card: card, now: now, grade: rating).card
+            ivlHistory.append(Int(card.scheduledDays))
+            now = card.due
+        }
+        #expect(ivlHistory == [3, 14, 57, 196, 586, 1559, 10, 1, 3, 5, 9, 15, 25])
+    }
 }
