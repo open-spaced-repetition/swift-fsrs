@@ -44,15 +44,15 @@ class FSRSHelper {
 }
 
 public struct FSRSError: Error, Equatable, Sendable {
-    enum Reason: String, Error, Sendable {
+    public enum Reason: String, Error, Sendable {
         case invalidInterval
         case invalidRating
         case invalidRetention
         case invalidParam
         case invalidDeltaT
     }
-    var errorReason: Reason
-    var message: String?
+    public var errorReason: Reason
+    public var message: String?
     
     init(_ errorReason: Reason, _ message: String? = nil) {
         self.message = message

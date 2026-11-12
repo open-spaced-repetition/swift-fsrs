@@ -36,6 +36,14 @@ import Testing
         #expect(err?.errorReason == .invalidParam)
     }
 
+    @Test(arguments: [CardState.learning, .relearning])
+    func negativeStepIndexIsTreatedAsFirstStep(state: CardState) throws {
+        let params = FSRSParameters(w: FSRSDefaults.defaultWv6)
+        let negative = try basicLearningStepsStrategy(params: params, state: state, curStep: -3)
+        let first = try basicLearningStepsStrategy(params: params, state: state, curStep: 0)
+        #expect(negative == first)
+    }
+
     @Test(arguments: [
         ("1m", 1),
         ("10m", 10),

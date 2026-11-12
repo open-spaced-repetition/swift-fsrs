@@ -79,13 +79,14 @@ public func basicLearningStepsStrategy(
         ? params.relearningSteps
         : params.learningSteps
     let stepsLength = steps.count
+    let curStep = max(0, curStep)
 
     if stepsLength == 0 || curStep >= stepsLength { return [:] }
 
     var result: [Rating: LearningStepOutcome] = [:]
 
     if state == .review {
-        let info = steps[max(0, curStep)]
+        let info = steps[curStep]
         let mins = try convertStepUnitToMinutes(info)
         result[.again] = LearningStepOutcome(scheduledMinutes: mins, nextStep: 0)
         return result

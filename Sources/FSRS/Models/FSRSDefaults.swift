@@ -24,6 +24,8 @@ public enum FSRSAlgorithmVersion: Equatable, Sendable {
 }
 
 public final class FSRSDefaults: Sendable {
+    public init() {}
+
     /// Lower bound for stability under FSRS-5 semantics.
     static let S_MIN = 0.01
     /// Lower bound for stability under FSRS-6 semantics (matches upstream ts-fsrs).
@@ -222,7 +224,7 @@ public final class FSRSDefaults: Sendable {
      * const card: CardUnChecked = createEmptyCard(new Date(), cardAfterHandler);
      * ```
      */
-    func createEmptyCard(now: Date = Date(), afterHandler: ((Card) -> Card)? = nil) -> Card {
+    public func createEmptyCard(now: Date = Date(), afterHandler: ((Card) -> Card)? = nil) -> Card {
         let card = Card(due: now)
         return afterHandler?(card) ?? card
     }
