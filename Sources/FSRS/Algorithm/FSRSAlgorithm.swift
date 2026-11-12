@@ -59,13 +59,23 @@ public class FSRSAlgorithm: @unchecked Sendable {
     /// immutable — to change them, construct a new `FSRS` instance.
     public var params: FSRSParameters { parameters }
 
+    public let calendar: Calendar
+    public let dayStartHour: Int
+
     let intervalModifier: Double
 
-    init(parameters: FSRSParameters) {
+    public init(
+        parameters: FSRSParameters,
+        calendar: Calendar = FSRSDefaults.defaultCalendar,
+        dayStartHour: Int = 0
+    ) {
+        let safeHour = min(max(dayStartHour, 0), 23)
         // Migrate / clamp the input once. Subsequent reads of `self.parameters`
         // see the canonical, post-`generatorParameters` form.
         let migrated = FSRSDefaults().generatorParameters(props: parameters)
         self.parameters = migrated
+        self.calendar = calendar
+        self.dayStartHour = safeHour
         // Compute intervalModifier from the migrated parameters. We need the
         // version-dependent `decay` / `factor` here, which read `parameters`
         // via the computed properties — hence the temporary instance below.

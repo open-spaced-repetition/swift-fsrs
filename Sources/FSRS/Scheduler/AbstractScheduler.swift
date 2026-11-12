@@ -38,7 +38,12 @@ class AbstractScheduler: IScheduler {
 
         var interval = 0.0
         if current.state != .new && current.lastReview != nil {
-            interval = Date.dateDiffInDays(from: current.lastReview, to: reviewTime)
+            interval = Date.dateDiffInDays(
+                from: current.lastReview,
+                to: reviewTime,
+                calendar: algorithm.calendar,
+                dayStartHour: algorithm.dayStartHour
+            )
         }
         self.current.lastReview = reviewTime
         self.current.elapsedDays = interval

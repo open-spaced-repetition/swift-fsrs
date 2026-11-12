@@ -95,13 +95,23 @@ extension Date {
         return r
     }
 
-    static func dateDiffInDays(from last: Date?, to cur: Date) -> Double {
+    public static func dateDiffInDays(
+        from last: Date?,
+        to cur: Date,
+        calendar: Calendar = FSRSDefaults.defaultCalendar,
+        dayStartHour: Int = 0
+    ) -> Double {
         guard let last = last else { return 0.0 }
-        var calendar = Calendar(identifier: .gregorian)
-        calendar.timeZone = TimeZone(secondsFromGMT: 0) ?? .autoupdatingCurrent
-        let startOfLast = calendar.startOfDay(for: last)
-        let startOfCur = calendar.startOfDay(for: cur)
-        return floor((startOfCur.timeIntervalSince1970 - startOfLast.timeIntervalSince1970) / (24 * 60 * 60))
+        let safeHour = min(max(dayStartHour, 0), 23)
+
+        func studyDay(_ date: Date) -> Date {
+            let midnight = calendar.startOfDay(for: date)
+            guard calendar.component(.hour, from: date) < safeHour else { return midnight }
+            return calendar.date(byAdding: .day, value: -1, to: midnight) ?? midnight
+        }
+
+        let days = calendar.dateComponents([.day], from: studyDay(last), to: studyDay(cur)).day ?? 0
+        return Double(days)
     }
 
     func toString(_ dateFormat: String) -> String? {

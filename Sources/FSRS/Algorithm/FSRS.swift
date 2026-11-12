@@ -8,8 +8,12 @@ import Foundation
 
 public final class FSRS: FSRSAlgorithm, @unchecked Sendable {
 
-    override public init(parameters: FSRSParameters) {
-        super.init(parameters: parameters)
+    override public init(
+        parameters: FSRSParameters,
+        calendar: Calendar = FSRSDefaults.defaultCalendar,
+        dayStartHour: Int = 0
+    ) {
+        super.init(parameters: parameters, calendar: calendar, dayStartHour: dayStartHour)
     }
     
     /**
