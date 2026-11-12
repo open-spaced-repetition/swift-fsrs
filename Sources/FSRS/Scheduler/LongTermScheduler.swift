@@ -127,8 +127,8 @@ class LongTermScheduler: AbstractScheduler {
         
         let newAgainInterval = min(againInterval, hardInterval)
         let newHardInterval = max(hardInterval, (againInterval + 1))
-        let newGoodInterval = max(goodInterval, (hardInterval + 1))
-        let newEasyInterval = max(easyInterval, (goodInterval + 1))
+        let newGoodInterval = max(goodInterval, (newHardInterval + 1))
+        let newEasyInterval = max(easyInterval, (newGoodInterval + 1))
 
         nextAgain.scheduledDays = Double(newAgainInterval)
         nextAgain.due = Date.dateScheduler(now: reviewTime, t: Double(newAgainInterval), unit: .days)
