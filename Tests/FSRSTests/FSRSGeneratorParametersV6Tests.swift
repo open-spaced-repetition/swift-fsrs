@@ -48,6 +48,22 @@ import Testing
         #expect(p.w == v5w)
     }
 
+    @Test func v6InitialStabilityFloorIsV6Minimum() {
+        var w = FSRSDefaults.defaultWv6
+        w[0] = 0.002
+        w[1] = 0.0001
+        let p = FSRSDefaults().generatorParameters(props: .init(w: w))
+        expectClose(p.w[0], 0.002, 1e-12)
+        expectClose(p.w[1], FSRSDefaults.S_MIN_V6, 1e-12)
+    }
+
+    @Test func v5InitialStabilityFloorUnchanged() {
+        var w = FSRSParameters().w
+        w[0] = 0.002
+        let p = FSRSDefaults().generatorParameters(props: .init(w: w))
+        expectClose(p.w[0], FSRSDefaults.S_MIN, 1e-12)
+    }
+
     @Test func v6ClampForcesValidRanges() {
         let defaults = FSRSDefaults()
         var w = FSRSDefaults.defaultWv6
