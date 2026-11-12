@@ -69,9 +69,8 @@ public final class FSRSDefaults: Sendable {
         w17W18Ceiling: Double = W17_W18_CEILING,
         enableShortTerm: Bool = true
     ) -> [[Double]] {
-        let base = CLAMP_PARAMETERS
-            .prefix(17)
-            .map { $0 } + [
+        let initialStability = Array(repeating: [S_MIN_V6, INIT_S_MAX], count: 4)
+        let base = initialStability + CLAMP_PARAMETERS[4..<17] + [
                 [0.0, w17W18Ceiling] /** short-term stability (exponent) */,
                 [0.0, w17W18Ceiling] /** short-term stability (exponent) */,
                 [enableShortTerm ? 0.01 : 0.0, 0.8] /** short-term last-stability (exponent) */,
@@ -131,7 +130,7 @@ public final class FSRSDefaults: Sendable {
     /// Default relearning steps used by v6 schedulers (no effect under v5).
     public static let defaultRelearningSteps: [String] = ["10m"]
 
-    let FSRSVersion: String = "v5.1.0 using FSRS-5.0"
+    let FSRSVersion: String = "v6.0.0 using FSRS-6.0"
 
     func generatorParameters(props: FSRSParameters? = nil) -> FSRSParameters {
         var w = defaultW
